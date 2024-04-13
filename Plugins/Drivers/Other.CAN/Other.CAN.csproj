@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <OutputPath>../../../IoTGateway/bin/Debug/net6.0/drivers</OutputPath>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SocketCANSharp" Version="0.11.0" />
+    <ProjectReference Include="..\..\PluginInterface\PluginInterface.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -32,7 +32,7 @@ namespace IoTGateway.ViewModel.HomeVMs
                     {
                         rv = "/#" + rv;
                     }
-                    if(rv.Split("#/").Length > 2)
+                    if (rv.Split("#/").Length > 2)
                     {
                         int index = rv.LastIndexOf("#/");
                         rv = rv.Substring(0, index);
@@ -54,7 +54,11 @@ namespace IoTGateway.ViewModel.HomeVMs
         public async System.Threading.Tasks.Task<LoginUserInfo> DoLoginAsync(bool ignorePris = false)
         {
             //根据用户名和密码查询用户
-            var rv = await DC.Set<FrameworkUser>().Where(x => x.ITCode.ToLower() == ITCode.ToLower() && x.Password == Utils.GetMD5String(Password) && x.IsValid).Select(x => new { itcode = x.ITCode, id = x.GetID() }).SingleOrDefaultAsync();
+            var rv = await DC.Set<FrameworkUser>()
+                .Where(x => x.ITCode.ToLower() == ITCode.ToLower() && x.Password == Utils.GetMD5String(Password) && x.IsValid)
+                //.Where(x => x.ITCode.ToLower() == ITCode.ToLower() && x.IsValid)
+                .Select(x => new { itcode = x.ITCode, id = x.GetID() })
+                .SingleOrDefaultAsync();
 
             //如果没有找到则输出错误
             if (rv == null)

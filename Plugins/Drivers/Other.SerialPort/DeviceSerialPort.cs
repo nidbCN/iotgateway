@@ -77,6 +77,7 @@ public class DeviceSerialPort : IDriver
         _serialPort = null;
     }
 
+    [Method("读串口设备数据")]
     public DriverReturnValueModel Read(DriverAddressIoArgModel ioArg)
     {
         var ret = new DriverReturnValueModel { StatusType = VaribaleStatusTypeEnum.Good };
@@ -117,6 +118,7 @@ public class DeviceSerialPort : IDriver
         return ret;
     }
 
+    [Method("写串口设备数据")]
     public async Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg)
     {
         var resp = new RpcResponse();

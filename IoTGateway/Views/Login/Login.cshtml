@@ -2,7 +2,6 @@
 
 @{
     Layout = null;
-    int bgnumber = new Random().Next(1, 6);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -17,7 +16,7 @@
     <script src="/layui/layui.js"></script>
     <script src="/_js/framework_layui.js?time=@DateTime.Now.Ticks"></script>
     <link rel="stylesheet" href="~/sitecss/logincss.css">
-    <title>IoTGateway</title>
+    <title>多协议网关</title>
     <script type="text/javascript">
         $(document).ready(function () {
             //$('#verify_code_img').attr('src', '/_framework/GetVerifyCode?id=' + Math.random());
@@ -30,18 +29,15 @@
     </script>
 </head>
 
-
-
-
 <body>
-    <div class="loginBody app-login-back-@bgnumber" style="flex: 1 1 auto !important; ">
+    <div class="loginBody app-login-back-1" style="flex: 1 1 auto !important; ">
         <header class="login-header">
             <img src="/images/logo.png" alt="" height="48">
-            <img src="/images/wxgroup.png" alt="" style="float:right" height="150">
+            @* <img src="/images/wxgroup.png" alt="" style="float:right" height="150"> *@
         </header>
         <div class="login-content">
             <div class="login-form">
-                <h1>IoTGateway</h1>
+                <h1>多协议网关</h1>
                 <form action="/Login/Login" method="post">
                     <input type="hidden" name="Redirect" value="@Model.Redirect">
                     <ul class="loginForm">
@@ -69,10 +65,6 @@
                         <li>
                             <span class="login-error">@Model.MSD.GetFirstError()</span>
                             <button type="submit" class="login-button" style="cursor:pointer">@Model.Localizer["Login.Login"]</button>
-
-                            <div class="login-button" style="cursor:pointer">
-                                <a href="http://iotgateway.net/docs/enterprise/intro" target="_blank">企业版</a>
-                            </div>
                             
                             @*<wt:linkbutton window-title="@Model.Localizer["Login.Register"]" class="login-button" style="cursor:pointer" target="ButtonTargetEnum.Layer" window-width="500" window-height="500" url="/Login/Reg" text="@Model.Localizer["Login.Register"]" />*@
                         </li>

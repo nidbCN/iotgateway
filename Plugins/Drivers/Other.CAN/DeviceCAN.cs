@@ -112,11 +112,82 @@ public class DeviceCAN : IDriver
         var resp = new RpcResponse();
         try
         {
+            byte[] data;
+
+            switch (ioArg.ValueType)
+            {
+                case DataTypeEnum.Bit:
+                    break;
+                case DataTypeEnum.Bool:
+                    break;
+                case DataTypeEnum.UByte:
+                    break;
+                case DataTypeEnum.Byte:
+                    data = new byte[] { (byte)ioArg.Value };
+                    break;
+                case DataTypeEnum.Uint16:
+                    data = BitConverter.GetBytes((ushort)ioArg.Value);
+                    break;
+                case DataTypeEnum.Int16:
+                    data = BitConverter.GetBytes((short)ioArg.Value);
+                    break;
+                case DataTypeEnum.Bcd16:
+                    break;
+                case DataTypeEnum.Uint32:
+                    data = BitConverter.GetBytes((uint)ioArg.Value);
+                    break;
+                case DataTypeEnum.Int32:
+                    data = BitConverter.GetBytes((int)ioArg.Value);
+                    break;
+                case DataTypeEnum.Float:
+                    data = BitConverter.GetBytes((float)ioArg.Value);
+                    break;
+                case DataTypeEnum.Bcd32:
+                    break;
+                case DataTypeEnum.Uint64:
+                    data = BitConverter.GetBytes((ulong)ioArg.Value);
+                    break;
+                case DataTypeEnum.Int64:
+                    data = BitConverter.GetBytes((long)ioArg.Value);
+                    break;
+                case DataTypeEnum.Double:
+                    data = BitConverter.GetBytes((double)ioArg.Value);
+                    break;
+                case DataTypeEnum.AsciiString:
+                    data = Encoding.ASCII.GetBytes((string)ioArg.Value);
+                    break;
+                case DataTypeEnum.Utf8String:
+                    data = Encoding.UTF8.GetBytes((string)ioArg.Value);
+                    break;
+                case DataTypeEnum.DateTime:
+                    break;
+                case DataTypeEnum.TimeStampMs:
+                    break;
+                case DataTypeEnum.TimeStampS:
+                    break;
+                case DataTypeEnum.Any:
+                    break;
+                case DataTypeEnum.Custome1:
+                    break;
+                case DataTypeEnum.Custome2:
+                    break;
+                case DataTypeEnum.Custome3:
+                    break;
+                case DataTypeEnum.Custome4:
+                    break;
+                case DataTypeEnum.Custome5:
+                    break;
+                case DataTypeEnum.Gb2312String:
+                    break;
+                default:
+                    break;
+            }
+
             await Task.Run(() =>
             {
                 _socket?.Write(new CanFrame()
                 {
-                    Data = null
+                    Data = data
                 });
             });
         }

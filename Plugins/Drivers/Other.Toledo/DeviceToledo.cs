@@ -26,7 +26,8 @@ namespace Other.Toledo
         private readonly string _device;
         #region 配置参数
 
-        [ConfigParameter("设备Id")] public string DeviceId { get; set; }
+        [ConfigParameter("设备Id")] 
+        public string DeviceId { get; set; }
 
         [ConfigParameter("IP地址")]
         public string IpAddress { get; set; } = "127.0.0.1";

@@ -48,7 +48,7 @@ namespace IoTGateway
                      webBuilder.UseKestrel(option =>
                      {
                          option.ListenAnyIP(1888, l => l.UseMqtt());
-                         option.ListenAnyIP(518);
+                         option.ListenAnyIP(8518);
                      });
                  })
                   .UseNLog();

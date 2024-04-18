@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using PluginInterface;
-using System.Collections;
-using System.ComponentModel.DataAnnotations;
 using System.IO.Ports;
 using System.Text;
 
@@ -38,8 +36,13 @@ public class DeviceSerialPort : IDriver
 
     #endregion
 
+
+
     public ILogger _logger { get; set; }
+
     private readonly string _device;
+
+    private byte[] _lastRecv;
 
     public DeviceSerialPort(string device, ILogger logger)
     {
@@ -49,12 +52,12 @@ public class DeviceSerialPort : IDriver
 
     private SerialPort? _serialPort;
 
-    public bool IsConnected => _serialPort != null;
+    public bool IsConnected => _serialPort != null && _serialPort.IsOpen;
 
 
     public bool Close()
     {
-        _serialPort.Close();
+        _serialPort?.Close();
         return true;
     }
 
@@ -63,6 +66,7 @@ public class DeviceSerialPort : IDriver
         try
         {
             _serialPort = new SerialPort(PortName, BaudRate, Parity, DataBits);
+            _serialPort.Open();
         }
         catch (Exception e)
         {
@@ -89,25 +93,29 @@ public class DeviceSerialPort : IDriver
             try
             {
                 var len = _serialPort!.BytesToRead;
-                var buffer = new byte[len];
 
-                var data = _serialPort.Read(buffer, 0, len);
+                if (len != 0)
+                {
+                    var buffer = new byte[len];
+                    var _ = _serialPort.Read(buffer, 0, len);
+                    _lastRecv = buffer;
+                }
 
                 switch (ioArg.ValueType)
                 {
                     case DataTypeEnum.AsciiString:
-                        ret.Value = Encoding.ASCII.GetString(buffer);
+                        ret.Value = Encoding.ASCII.GetString(_lastRecv);
                         break;
 
                     case DataTypeEnum.Int32:
-                        ret.Value = Convert.ToInt32(data);
+                        ret.Value = Convert.ToInt32(_lastRecv);
                         break;
                 }
 
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error receive {m}", e.Message);
+                _logger.LogError(e, "Device:[{dev}],Connect(),Error: {m}", _device, e.Message);
                 ret.StatusType = VaribaleStatusTypeEnum.Bad;
                 ret.Message = e.Message;
             }

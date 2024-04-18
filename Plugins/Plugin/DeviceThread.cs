@@ -116,9 +116,11 @@ namespace Plugin
                                         if (method == null)
                                             ret.StatusType = VaribaleStatusTypeEnum.MethodError;
                                         else
+                                        {
+                                            var arg = new object[] { ioarg };
                                             ret = (DriverReturnValueModel)method.Invoke(Driver,
-                                                new object[] { ioarg })!;
-
+                                               arg)!;
+                                        }
                                         item.EnqueueVariable(ret.Value);
                                         if (ret.StatusType == VaribaleStatusTypeEnum.Good &&
                                             !string.IsNullOrWhiteSpace(item.Expressions?.Trim()))

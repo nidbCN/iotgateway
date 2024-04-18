@@ -268,7 +268,8 @@ namespace WalkingTec.Mvvm.Mvc.Filters
                 if (viewName?.StartsWith("/") == false)
                 {
                     var viewEngine = context.HttpContext.RequestServices.GetRequiredService<ICompositeViewEngine>();
-                    viewName = viewEngine.FindView(context, string.IsNullOrEmpty(viewName) ? ctrlActDesc.ActionName : viewName, false)?.View?.Path;
+                    viewName = viewEngine.FindView(context, string.IsNullOrEmpty(viewName) 
+                        ? ctrlActDesc.ActionName : viewName, false)?.View?.Path;
                 }
             }
             if (context.Result is ViewResult vr)

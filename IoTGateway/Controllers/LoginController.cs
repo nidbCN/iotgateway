@@ -4,8 +4,6 @@ using System.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Core.Extensions;
 using WalkingTec.Mvvm.Mvc;
@@ -36,16 +34,6 @@ namespace IoTGateway.Controllers
         [HttpPost]
         public async Task<ActionResult> Login(LoginVM vm)
         {
-            if (false)//Wtm.ConfigInfo.IsQuickDebug == false
-            {
-                var verifyCode = HttpContext.Session.Get<string>("verify_code");
-                if (string.IsNullOrEmpty(verifyCode) || verifyCode.ToLower() != vm.VerifyCode.ToLower())
-                {
-                    vm.MSD.AddModelError("", Localizer["Login.ValidationFail"]);
-                    return View(vm);
-                }
-            }
-
             var user = await vm.DoLoginAsync();
             if (user == null)
             {
@@ -54,15 +42,7 @@ namespace IoTGateway.Controllers
             else
             {
                 Wtm.LoginUserInfo = user;
-                string url = string.Empty;
-                if (!string.IsNullOrEmpty(vm.Redirect))
-                {
-                    url = vm.Redirect;
-                }
-                else
-                {
-                    url = "/";
-                }
+                var url = string.IsNullOrEmpty(vm.Redirect) ? "/" : vm.Redirect;
 
                 AuthenticationProperties properties = null;
                 if (vm.RememberLogin)

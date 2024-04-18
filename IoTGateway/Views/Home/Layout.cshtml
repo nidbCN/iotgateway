@@ -103,6 +103,8 @@
               layui.each(d[dataName], function(index, item){
                 var hasChildren = typeof item.list === 'object' && item.list.length > 0
                 ,url = (item.jump && typeof item.jump === 'string') ? item.jump : item.name;
+
+              if(item.name != '菜单管理') {
           }}
           <li data-name="{{ item.name || '' }}" data-jump="{{ item.jump || '' }}" class="layui-nav-item ">
             <a href="javascript:;" {{ hasChildren ? '' : 'lay-href="'+ url +'"' }} lay-tips="{{ item.title }}" lay-direction="2">
@@ -143,7 +145,7 @@
             </dl>
             {{# } }}
           </li>
-          {{# }); }}
+          {{# } }); }}
         </ul>
       </script>
     </div>

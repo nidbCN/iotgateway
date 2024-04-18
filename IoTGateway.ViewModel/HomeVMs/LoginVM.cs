@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using WalkingTec.Mvvm.Core;
 
@@ -35,7 +36,7 @@ namespace IoTGateway.ViewModel.HomeVMs
                     if (rv.Split("#/").Length > 2)
                     {
                         int index = rv.LastIndexOf("#/");
-                        rv = rv.Substring(0, index);
+                        rv = rv[..index];
                     }
                 }
                 return rv;
@@ -51,11 +52,13 @@ namespace IoTGateway.ViewModel.HomeVMs
         /// </summary>
         /// <param name="ignorePris">外部传递的页面权限</param>
         /// <returns>登录用户的信息</returns>
-        public async System.Threading.Tasks.Task<LoginUserInfo> DoLoginAsync(bool ignorePris = false)
+        public async Task<LoginUserInfo> DoLoginAsync(bool ignorePris = false)
         {
             //根据用户名和密码查询用户
             var rv = await DC.Set<FrameworkUser>()
-                .Where(x => x.ITCode.ToLower() == ITCode.ToLower() && x.Password == Utils.GetMD5String(Password) && x.IsValid)
+                .Where(x => x.ITCode.ToLower() == ITCode.ToLower() 
+                    && x.Password == Utils.GetMD5String(Password) 
+                    && x.IsValid)
                 //.Where(x => x.ITCode.ToLower() == ITCode.ToLower() && x.IsValid)
                 .Select(x => new { itcode = x.ITCode, id = x.GetID() })
                 .SingleOrDefaultAsync();

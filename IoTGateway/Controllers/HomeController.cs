@@ -26,6 +26,7 @@ namespace IoTGateway.Controllers
         {
             _deviceService = deviceService;
         }
+
         [AllRights]
         public IActionResult Index()
         {
@@ -53,21 +54,27 @@ namespace IoTGateway.Controllers
 
             data.Add(new ChartData
             {
-                Value = _deviceService.DeviceThreads.Where(x => !x.Device.AutoStart).Count(),
+                Value = _deviceService.DeviceThreads
+                    .Where(x => !x.Device.AutoStart)
+                    .Count(),
                 Category = "停止",
                 Series = "Device"
             });
 
             data.Add(new ChartData
             {
-                Value = _deviceService.DeviceThreads.Where(x => x.Device.AutoStart && x.Driver.IsConnected).Count(),
+                Value = _deviceService.DeviceThreads
+                    .Where(x => x.Device.AutoStart && x.Driver.IsConnected)
+                    .Count(),
                 Category = "运行",
                 Series = "Device",
             });
 
             data.Add(new ChartData
             {
-                Value = _deviceService.DeviceThreads.Where(x => x.Device.AutoStart && !x.Driver.IsConnected).Count(),
+                Value = _deviceService.DeviceThreads
+                    .Where(x => x.Device.AutoStart && !x.Driver.IsConnected)
+                    .Count(),
                 Category = "异常",
                 Series = "Device"
             });

@@ -112,7 +112,7 @@ public class DeviceCAN : IDriver
         var resp = new RpcResponse();
         try
         {
-            byte[] data;
+            byte[] data = null;
 
             switch (ioArg.ValueType)
             {
@@ -183,13 +183,21 @@ public class DeviceCAN : IDriver
                     break;
             }
 
-            await Task.Run(() =>
+            if (data is null)
             {
-                _socket?.Write(new CanFrame()
+                resp.IsSuccess = false;
+            }
+            else
+            {
+                await Task.Run(() =>
                 {
-                    Data = data
+                    _socket?.Write(new CanFrame()
+                    {
+                        Data = data
+                    });
                 });
-            });
+            }
+
         }
         catch (Exception ex)
         {

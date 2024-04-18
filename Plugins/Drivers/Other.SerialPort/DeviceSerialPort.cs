@@ -39,10 +39,12 @@ public class DeviceSerialPort : IDriver
     #endregion
 
     public ILogger _logger { get; set; }
+    private readonly string _device;
 
-    public DeviceSerialPort(ILogger logger)
+    public DeviceSerialPort(string device, ILogger logger)
     {
         _logger = logger;
+        _device = device;
     }
 
     private SerialPort? _serialPort;

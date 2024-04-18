@@ -14,7 +14,7 @@ public class DeviceSerialPort : IDriver
     public string DeviceId { get; set; }
 
     [ConfigParameter("串口名")]
-    public string PortName { get; set; } = "/dev/ttyS0";
+    public string PortName { get; set; } = "/dev/ttySC0";
 
     [ConfigParameter("波特率")]
     public int BaudRate { get; set; } = 9600;
@@ -35,8 +35,6 @@ public class DeviceSerialPort : IDriver
     public uint MinPeriod { get; set; } = 3000;
 
     #endregion
-
-
 
     public ILogger _logger { get; set; }
 
@@ -103,19 +101,8 @@ public class DeviceSerialPort : IDriver
 
                 if (_lastRecv is { })
                 {
-
-                    switch (ioArg.ValueType)
-                    {
-                        case DataTypeEnum.AsciiString:
-                            ret.Value = Encoding.ASCII.GetString(_lastRecv);
-                            break;
-
-                        case DataTypeEnum.Int32:
-                            ret.Value = Convert.ToInt32(_lastRecv);
-                            break;
-                    }
+                    ret.Value = ConvertToValue(ioArg.ValueType, _lastRecv);
                 }
-
             }
             catch (Exception e)
             {
@@ -127,108 +114,72 @@ public class DeviceSerialPort : IDriver
         else
         {
             ret.StatusType = VaribaleStatusTypeEnum.Bad;
+            ret.Message = "Not connected.";
         }
 
         return ret;
     }
 
+    private static object ConvertToValue(DataTypeEnum type, byte[] data)
+        => type switch
+        {
+            DataTypeEnum.Uint64 => BitConverter.ToUInt64(data),
+            DataTypeEnum.Int64 => BitConverter.ToInt64(data),
+            DataTypeEnum.Uint32 => BitConverter.ToUInt32(data),
+            DataTypeEnum.Int32 => BitConverter.ToInt32(data),
+            DataTypeEnum.Uint16 => BitConverter.ToUInt16(data),
+            DataTypeEnum.Int16 => BitConverter.ToInt16(data),
+            DataTypeEnum.UByte => Convert.ToByte(data),
+            DataTypeEnum.Byte => Convert.ToSByte(data),
+            DataTypeEnum.Bool => BitConverter.ToBoolean(data),
+            DataTypeEnum.DateTime => Convert.ToDateTime(data),
+            DataTypeEnum.AsciiString => Encoding.ASCII.GetString(data),
+            DataTypeEnum.Utf8String => Encoding.UTF8.GetString(data),
+            DataTypeEnum.Float => BitConverter.ToSingle(data),
+            DataTypeEnum.Double => BitConverter.ToDouble(data),
+            _ => Convert.ToHexString(data),
+        };
+
     [Method("写串口设备数据", description: "写入数据")]
     public async Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg)
     {
-        var resp = new RpcResponse();
+        var resp = new RpcResponse() { IsSuccess = true };
         if (IsConnected)
         {
             try
             {
                 using var stream = _serialPort!.BaseStream;
 
-                byte[] data = null;
+                var data = ConvertToByte(ioArg.ValueType, ioArg.Value);
 
-                switch (ioArg.ValueType)
-                {
-                    case DataTypeEnum.Bit:
-                        break;
-                    case DataTypeEnum.Bool:
-                        break;
-                    case DataTypeEnum.UByte:
-                        break;
-                    case DataTypeEnum.Byte:
-                        data = new byte[] { (byte)ioArg.Value };
-                        break;
-                    case DataTypeEnum.Uint16:
-                        data = BitConverter.GetBytes((ushort)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Int16:
-                        data = BitConverter.GetBytes((short)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Bcd16:
-                        break;
-                    case DataTypeEnum.Uint32:
-                        data = BitConverter.GetBytes((uint)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Int32:
-                        data = BitConverter.GetBytes((int)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Float:
-                        data = BitConverter.GetBytes((float)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Bcd32:
-                        break;
-                    case DataTypeEnum.Uint64:
-                        data = BitConverter.GetBytes((ulong)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Int64:
-                        data = BitConverter.GetBytes((long)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Double:
-                        data = BitConverter.GetBytes((double)ioArg.Value);
-                        break;
-                    case DataTypeEnum.AsciiString:
-                        data = Encoding.ASCII.GetBytes((string)ioArg.Value);
-                        break;
-                    case DataTypeEnum.Utf8String:
-                        data = Encoding.UTF8.GetBytes((string)ioArg.Value);
-                        break;
-                    case DataTypeEnum.DateTime:
-                        break;
-                    case DataTypeEnum.TimeStampMs:
-                        break;
-                    case DataTypeEnum.TimeStampS:
-                        break;
-                    case DataTypeEnum.Any:
-                        break;
-                    case DataTypeEnum.Custome1:
-                        break;
-                    case DataTypeEnum.Custome2:
-                        break;
-                    case DataTypeEnum.Custome3:
-                        break;
-                    case DataTypeEnum.Custome4:
-                        break;
-                    case DataTypeEnum.Custome5:
-                        break;
-                    case DataTypeEnum.Gb2312String:
-                        break;
-                    default:
-                        break;
-                }
-
-                if (data is null)
-                {
-                    resp.IsSuccess = false;
-                }
-                else
-                {
-                    await stream.WriteAsync(data);
-                }
+                await stream.WriteAsync(data);
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "Device [{dev}] send failed, {m}", _device, e.Message);
                 resp.IsSuccess = false;
             }
         }
 
-        resp.IsSuccess = false;
         return resp;
     }
+
+    private static byte[] ConvertToByte(DataTypeEnum type, object data)
+        => type switch
+        {
+            DataTypeEnum.AsciiString => Encoding.ASCII.GetBytes((string)data),
+            DataTypeEnum.Utf8String => Encoding.UTF8.GetBytes((string)data),
+            DataTypeEnum.Byte => BitConverter.GetBytes((sbyte)data),
+            DataTypeEnum.UByte => BitConverter.GetBytes((byte)data),
+            DataTypeEnum.Bool => BitConverter.GetBytes((bool)data),
+            DataTypeEnum.Uint16 => BitConverter.GetBytes((ushort)data),
+            DataTypeEnum.Int16 => BitConverter.GetBytes((short)data),
+            DataTypeEnum.Uint32 => BitConverter.GetBytes((uint)data),
+            DataTypeEnum.Int32 => BitConverter.GetBytes((int)data),
+            DataTypeEnum.Uint64 => BitConverter.GetBytes((ulong)data),
+            DataTypeEnum.Int64 => BitConverter.GetBytes((long)data),
+            DataTypeEnum.Float => BitConverter.GetBytes((float)data),
+            DataTypeEnum.Double => BitConverter.GetBytes((double)data),
+            _ => Array.Empty<byte>(),
+        };
 }

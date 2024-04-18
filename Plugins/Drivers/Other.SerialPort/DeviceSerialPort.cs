@@ -101,15 +101,19 @@ public class DeviceSerialPort : IDriver
                     _lastRecv = buffer;
                 }
 
-                switch (ioArg.ValueType)
+                if (_lastRecv is { })
                 {
-                    case DataTypeEnum.AsciiString:
-                        ret.Value = Encoding.ASCII.GetString(_lastRecv);
-                        break;
 
-                    case DataTypeEnum.Int32:
-                        ret.Value = Convert.ToInt32(_lastRecv);
-                        break;
+                    switch (ioArg.ValueType)
+                    {
+                        case DataTypeEnum.AsciiString:
+                            ret.Value = Encoding.ASCII.GetString(_lastRecv);
+                            break;
+
+                        case DataTypeEnum.Int32:
+                            ret.Value = Convert.ToInt32(_lastRecv);
+                            break;
+                    }
                 }
 
             }

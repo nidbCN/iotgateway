@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using PluginInterface;
-using System.Net;
 using System.Reflection;
 using WalkingTec.Mvvm.Core;
 using IoTGateway.DataAccess;
@@ -15,129 +14,139 @@ namespace Plugin
     {
         private readonly ILogger<DeviceService> _logger;
         public DriverService DrvierManager;
+        private static readonly Dictionary<Type, Func<Type, string, object>> ParserTable
+            = new(){
+                { typeof(bool), (t, val) => val != "0" },
+                { typeof(string), (t,val) => val },
+                { typeof(Enum), (t, val) => Enum.Parse(t, val) },
+            };
 
-        public List<DeviceThread> DeviceThreads = new List<DeviceThread>();
+        public List<DeviceThread> DeviceThreads = new();
         private readonly MyMqttClient _myMqttClient;
-        private readonly UAService _uAService;
         private readonly MqttServer _mqttServer;
         private readonly string _connnectSetting = IoTBackgroundService.connnectSetting;
         private readonly DBTypeEnum _dbType = IoTBackgroundService.DbType;
 
-        //UAService? uAService, 
         public DeviceService(IConfiguration configRoot, DriverService drvierManager, MyMqttClient myMqttClient,
             MqttServer mqttServer, ILogger<DeviceService> logger)
         {
             _logger = logger;
             DrvierManager = drvierManager;
             _myMqttClient = myMqttClient;
-            //_uAService = uAService;
             _mqttServer = mqttServer ?? throw new ArgumentNullException(nameof(mqttServer));
+            
             try
             {
-                using (var dc = new DataContext(_connnectSetting, _dbType))
-                {
-                    var devices = dc.Set<Device>().Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
-                        .Include(x => x.Parent).Include(x => x.Driver).Include(x => x.DeviceConfigs)
-                        .Include(x => x.DeviceVariables).AsNoTracking().ToList();
-                    _logger.LogInformation($"Loaded Devices Count:{devices.Count()}");
-                    Parallel.ForEach(devices, CreateDeviceThread);
-                }
+                using var dataContext = new DataContext(_connnectSetting, _dbType);
+                var devices = dataContext.Set<Device>()
+                    .Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
+                    .Include(x => x.Parent)
+                    .Include(x => x.Driver)
+                    .Include(x => x.DeviceConfigs)
+                    .Include(x => x.DeviceVariables)
+                    .AsNoTracking()
+                    .ToList();
+                _logger.LogInformation("Loaded Devices Count: {count}", devices.Count);
+
+                // 为所有设备创建线程
+                Parallel.ForEach(devices, CreateDeviceThread);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"LoadDevicesError", ex);
+                _logger.LogError(ex, "LoadDevicesError.");
             }
         }
 
+        /// <summary>
+        /// 更新设备
+        /// </summary>
+        /// <param name="device"></param>
         public void UpdateDevice(Device device)
         {
             try
             {
-                _logger.LogInformation($"UpdateDevice Start:{device.DeviceName}");
+                _logger.LogInformation("UpdateDevice Start:{device}", device.DeviceName);
                 RemoveDeviceThread(device);
                 CreateDeviceThread(device);
-                _logger.LogInformation($"UpdateDevice End:{device.DeviceName}");
+                _logger.LogInformation("UpdateDevice End:{device}", device.DeviceName);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"UpdateDevice Error:{device.DeviceName}", ex);
+                _logger.LogError(ex, "UpdateDevice Error:{device}", device.DeviceName);
             }
         }
 
-        public void UpdateDevices(List<Device> devices)
+        /// <summary>
+        /// 更新多个设备
+        /// </summary>
+        /// <param name="devices"></param>
+        public void UpdateDevices(IList<Device> devices)
         {
             foreach (var device in devices)
                 UpdateDevice(device);
         }
 
+        /// <summary>
+        /// 创建设备线程
+        /// </summary>
+        /// <param name="device"></param>
         public void CreateDeviceThread(Device device)
         {
             try
             {
-                _logger.LogInformation($"CreateDeviceThread Start:{device.DeviceName}");
-                using (var dc = new DataContext(_connnectSetting, _dbType))
+                _logger.LogInformation("CreateDeviceThread Start:{device}", device.DeviceName);
+                using (var dataContext = new DataContext(_connnectSetting, _dbType))
                 {
-                    var systemManage = dc.Set<SystemConfig>().FirstOrDefault();
+                    var systemManage = dataContext.Set<SystemConfig>().FirstOrDefault();
                     var driver = DrvierManager.DriverInfos
-                        .SingleOrDefault(x => x.Type.FullName == device.Driver.AssembleName);
-                    if (driver == null)
-                        _logger.LogError($"找不到设备:[{device.DeviceName}]的驱动:[{device.Driver.AssembleName}]");
+                        .SingleOrDefault(x => x.Type?.FullName == device.Driver.AssembleName);
+                    if (driver is null)
+                        _logger.LogError("找不到设备:[{device}]的驱动:[{driver}]", device.DeviceName, device.Driver.AssembleName);
                     else
                     {
-                        var settings = dc.Set<DeviceConfig>().Where(x => x.DeviceId == device.ID).AsNoTracking()
+                        var settingList = dataContext.Set<DeviceConfig>()
+                            .Where(x => x.DeviceId == device.ID)
+                            .AsNoTracking()
                             .ToList();
 
-                        Type[] types = new Type[] { typeof(string), typeof(ILogger) };
-                        object[] param = new object[] { device.DeviceName, _logger };
+                        var types = new Type[] { typeof(string), typeof(ILogger) };
+                        var param = new object[] { device.DeviceName, _logger };
 
-                        ConstructorInfo? constructor = driver.Type.GetConstructor(types);
+                        var constructor = driver.Type?.GetConstructor(types);
                         var deviceObj = constructor?.Invoke(param) as IDriver;
 
-                        foreach (var p in driver.Type.GetProperties())
+                        // 将设置中的值赋值到实例的字段中
+                        var propList = driver.Type?.GetProperties();
+
+                        if (propList is not null)
                         {
-                            var config = p.GetCustomAttribute(typeof(ConfigParameterAttribute));
-                            var setting = settings.FirstOrDefault(x => x.DeviceConfigName == p.Name);
-                            if (config == null || setting == null)
-                                continue;
+                            foreach (var prop in propList)
+                            {
+                                var config = prop.GetCustomAttribute(typeof(ConfigParameterAttribute));
+                                var setting = settingList
+                                    .FirstOrDefault(x => x.DeviceConfigName == prop.Name);
 
-                            object value = setting.Value;
+                                if (config == null || setting == null)
+                                    continue;
 
-                            if (p.PropertyType == typeof(bool))
-                                value = setting.Value != "0";
-                            else if (p.PropertyType == typeof(byte))
-                                value = byte.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(sbyte))
-                                value = sbyte.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(short))
-                                value = short.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(ushort))
-                                value = ushort.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(int))
-                                value = int.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(uint))
-                                value = uint.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(long))
-                                value = long.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(ulong))
-                                value = ulong.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(float))
-                                value = float.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(double))
-                                value = double.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(decimal))
-                                value = decimal.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(Guid))
-                                value = Guid.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(DateTime))
-                                value = DateTime.Parse(setting.Value);
-                            else if (p.PropertyType == typeof(string))
-                                value = setting.Value;
-                            else if (p.PropertyType == typeof(IPAddress))
-                                value = IPAddress.Parse(setting.Value);
-                            else if (p.PropertyType.BaseType == typeof(Enum))
-                                value = Enum.Parse(p.PropertyType, setting.Value);
+                                // 通过反射调用解析
+                                var type = prop.PropertyType;
+                                var settingVal = setting.Value;
+                                object val = settingVal;
 
-                            p.SetValue(deviceObj, value);
+                                if (ParserTable.TryGetValue(type, out var parser))
+                                {
+                                    val = parser(type, settingVal);
+                                }
+
+                                var parseMethod = type.GetMethod("Parse", new[] { typeof(string) });
+                                if (parseMethod != null)
+                                {
+                                    val = parseMethod.Invoke(null, new object[] { settingVal }) ?? settingVal;
+                                }
+
+                                prop.SetValue(deviceObj, val);
+                            }
                         }
 
                         if (deviceObj != null && systemManage != null)
@@ -150,23 +159,32 @@ namespace Plugin
                     }
                 }
 
-                _logger.LogInformation($"CreateDeviceThread End:{device.DeviceName}");
+                _logger.LogInformation("CreateDeviceThread End:{device}", device.DeviceName);
             }
             catch (Exception ex)
             {
-                _logger.LogInformation($"CreateDeviceThread Error:{device.DeviceName}", ex);
+                _logger.LogInformation(ex, "CreateDeviceThread Error:{device}", device.DeviceName);
             }
         }
 
+        /// <summary>
+        /// 创建多个设备线程
+        /// </summary>
+        /// <param name="devices"></param>
         public void CreateDeviceThreads(List<Device> devices)
         {
             foreach (Device device in devices)
                 CreateDeviceThread(device);
         }
 
+        /// <summary>
+        /// 删除设备线程
+        /// </summary>
+        /// <param name="devices"></param>
         public void RemoveDeviceThread(Device devices)
         {
-            var deviceThread = DeviceThreads.FirstOrDefault(x => x.Device.ID == devices.ID);
+            var deviceThread = DeviceThreads
+                .FirstOrDefault(x => x.Device.ID == devices.ID);
             if (deviceThread != null)
             {
                 deviceThread.StopThread();
@@ -175,36 +193,42 @@ namespace Plugin
             }
         }
 
+        /// <summary>
+        /// 删除多个设备线程
+        /// </summary>
+        /// <param name="devices"></param>
         public void RemoveDeviceThreads(List<Device> devices)
         {
             foreach (var device in devices)
                 RemoveDeviceThread(device);
         }
 
+        /// <summary>
+        /// 获取设备驱动（选择框）
+        /// </summary>
+        /// <param name="deviceId"></param>
+        /// <returns></returns>
         public List<ComboSelectListItem> GetDriverMethods(Guid? deviceId)
         {
-            List<ComboSelectListItem> driverFilesComboSelect = new List<ComboSelectListItem>();
+            var driverFilesComboSelect = new List<ComboSelectListItem>();
             try
             {
-                _logger.LogInformation($"GetDriverMethods Start:{deviceId}");
-                var methodInfos = DeviceThreads.FirstOrDefault(x => x.Device.ID == deviceId)?.Methods;
-                if (methodInfos != null)
-                    foreach (var method in methodInfos)
+                _logger.LogInformation("GetDriverMethods Start:{deviceId}", deviceId);
+                var methodInfos = DeviceThreads
+                    .FirstOrDefault(x => x.Device.ID == deviceId)
+                    ?.Methods
+                    ?.Select(m => new ComboSelectListItem()
                     {
-                        var attribute = method.CustomAttributes.ToList().FirstOrDefault()?.ConstructorArguments;
-                        var item = new ComboSelectListItem
-                        {
-                            Text = method.Name,
-                            Value = method.Name,
-                        };
-                        driverFilesComboSelect.Add(item);
-                    }
+                        Text = m.Name,
+                        Value = m.Name
+                    })
+                    .ToList();
 
-                _logger.LogInformation($"GetDriverMethods End:{deviceId}");
+                _logger.LogInformation("GetDriverMethods End:{deviceId}, Count:{cnt}", deviceId, methodInfos?.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"GetDriverMethods Error:{deviceId}", ex);
+                _logger.LogError(ex, "GetDriverMethods Error:{deviceId}", deviceId);
             }
 
             return driverFilesComboSelect;
@@ -212,15 +236,16 @@ namespace Plugin
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
             _logger.LogInformation("Dispose");
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public static Task StartAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public static Task StopAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }

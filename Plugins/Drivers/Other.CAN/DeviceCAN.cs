@@ -102,6 +102,9 @@ public class DeviceCAN : IDriver
             case DataTypeEnum.AsciiString:
                 ret.Value = Encoding.ASCII.GetString(frame.Data);
                 break;
+            case DataTypeEnum.Any:
+                ret.Value = frame.Data;
+                break;
         }
 
         return ret;

@@ -49,41 +49,43 @@ namespace IoTGateway.Controllers
 
         public IActionResult GetDeviceChart()
         {
-            var data = new List<ChartData>();
+            // 设备状态数据
+            var autoStartQuery = _deviceService.DeviceThreads
+                .Where(t => t.Device.AutoStart);
 
-
-            data.Add(new ChartData
+            var data = new List<ChartData>
             {
-                Value = _deviceService.DeviceThreads
+                new ()
+                {
+                    Value = _deviceService.DeviceThreads
                     .Where(x => !x.Device.AutoStart)
                     .Count(),
-                Category = "停止",
-                Series = "Device"
-            });
-
-            data.Add(new ChartData
-            {
-                Value = _deviceService.DeviceThreads
-                    .Where(x => x.Device.AutoStart && x.Driver.IsConnected)
+                    Category = "停止",
+                    Series = "Device"
+                },
+                new ()
+                {
+                    Value = autoStartQuery
+                    .Where(t => t.Driver.IsConnected)
                     .Count(),
-                Category = "运行",
-                Series = "Device",
-            });
-
-            data.Add(new ChartData
-            {
-                Value = _deviceService.DeviceThreads
-                    .Where(x => x.Device.AutoStart && !x.Driver.IsConnected)
+                    Category = "运行",
+                    Series = "Device",
+                },
+                new() {
+                    Value = autoStartQuery
+                    .Where(t => !t.Driver.IsConnected)
                     .Count(),
-                Category = "异常",
-                Series = "Device"
-            });
+                    Category = "异常",
+                    Series = "Device"
+                }
+            };
             var rv = data.ToChartData();
             return Json(rv);
         }
 
         public IActionResult GetDeviceVariableChart()
         {
+            // 设备变量数据
             var data = new List<ChartData>();
             foreach (var deviceThread in _deviceService.DeviceThreads.OrderBy(x => x.Device.DeviceName))
             {
@@ -154,7 +156,7 @@ namespace IoTGateway.Controllers
             {
                 data.Add(new ChartData
                 {
-                    Value = m.GetProperties().Count(),
+                    Value = m.GetProperties().Length,
                     Category = m.GetPropertyDisplayName(),
                     Series = "Model"
                 }) ;

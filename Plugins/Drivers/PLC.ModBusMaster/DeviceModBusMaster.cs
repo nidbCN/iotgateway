@@ -68,34 +68,20 @@ namespace PLC.ModBusMaster
             _device = device;
             _logger = logger;
 
-            _logger.LogInformation($"Device:[{_device}],Create()");
+            _logger.LogInformation("Device:[{device}],Create()", _device);
         }
 
         /// <summary>
         /// 连接状态
         /// </summary>
-        public bool IsConnected
+        public bool IsConnected => MasterType switch
         {
-            get
-            {
-                switch (MasterType)
-                {
-                    case MasterType.Tcp:
-                    case MasterType.RtuOnTcp:
-                    case MasterType.AsciiOnTcp:
-                        return _tcpClient != null && _master != null && _tcpClient.Connected;
-                    case MasterType.Udp:
-                    case MasterType.RtuOnUdp:
-                    case MasterType.AsciiOnUdp:
-                        return _udpClient != null && _master != null && _udpClient.Client.Connected;
-                    case MasterType.Rtu:
-                    case MasterType.Ascii:
-                        return _serialPort != null && _master != null && _serialPort.IsOpen;
-                    default:
-                        return false;
-                }
-            }
-        }
+            MasterType.Tcp or MasterType.RtuOnTcp or MasterType.AsciiOnTcp => _tcpClient != null && _master != null && _tcpClient.Connected,
+            MasterType.Udp or MasterType.RtuOnUdp or MasterType.AsciiOnUdp => _udpClient != null && _master != null && _udpClient.Client.Connected,
+            MasterType.Rtu or MasterType.Ascii => _serialPort != null && _master != null && _serialPort.IsOpen,
+            _ => false,
+        };
+
 
         /// <summary>
         /// 连接
@@ -105,13 +91,15 @@ namespace PLC.ModBusMaster
         {
             try
             {
-                _logger.LogInformation($"Device:[{_device}],Connect()");
+                _logger.LogInformation("Device:[{_device}],Connect()", _device);
                 switch (MasterType)
                 {
                     case MasterType.Tcp:
-                        _tcpClient = new TcpClient(IpAddress, Port);
-                        _tcpClient.ReceiveTimeout = Timeout;
-                        _tcpClient.SendTimeout = Timeout;
+                        _tcpClient = new TcpClient(IpAddress, Port)
+                        {
+                            ReceiveTimeout = Timeout,
+                            SendTimeout = Timeout
+                        };
                         _master = ModbusIpMaster.CreateIp(_tcpClient);
                         break;
                     case MasterType.Udp:
@@ -121,17 +109,21 @@ namespace PLC.ModBusMaster
                         _master = ModbusIpMaster.CreateIp(_udpClient);
                         break;
                     case MasterType.Rtu:
-                        _serialPort = new SerialPort(PortName, BaudRate, Parity, DataBits, StopBits);
-                        _serialPort.ReadTimeout = Timeout;
-                        _serialPort.WriteTimeout = Timeout;
+                        _serialPort = new SerialPort(PortName, BaudRate, Parity, DataBits, StopBits)
+                        {
+                            ReadTimeout = Timeout,
+                            WriteTimeout = Timeout
+                        };
                         _serialPort.Open();
                         _adapter = new SerialPortAdapter(_serialPort);
                         _master = ModbusSerialMaster.CreateRtu(_adapter);
                         break;
                     case MasterType.RtuOnTcp:
-                        _tcpClient = new TcpClient(IpAddress, Port);
-                        _tcpClient.ReceiveTimeout = Timeout;
-                        _tcpClient.SendTimeout = Timeout;
+                        _tcpClient = new TcpClient(IpAddress, Port)
+                        {
+                            ReceiveTimeout = Timeout,
+                            SendTimeout = Timeout
+                        };
                         _master = ModbusSerialMaster.CreateRtu(_tcpClient);
                         break;
                     case MasterType.RtuOnUdp:
@@ -141,9 +133,11 @@ namespace PLC.ModBusMaster
                         _master = ModbusSerialMaster.CreateRtu(_udpClient);
                         break;
                     case MasterType.Ascii:
-                        _serialPort = new SerialPort(PortName, BaudRate, Parity, DataBits, StopBits);
-                        _serialPort.ReadTimeout = Timeout;
-                        _serialPort.WriteTimeout = Timeout;
+                        _serialPort = new SerialPort(PortName, BaudRate, Parity, DataBits, StopBits)
+                        {
+                            ReadTimeout = Timeout,
+                            WriteTimeout = Timeout
+                        };
                         _serialPort.Open();
                         _adapter = new SerialPortAdapter(_serialPort);
                         _master = ModbusSerialMaster.CreateAscii(_adapter);
@@ -167,7 +161,7 @@ namespace PLC.ModBusMaster
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Device:[{_device}],Connect(),Error");
+                _logger.LogError(ex, "Device:[{_device}],Connect(),Error", _device);
                 return false;
             }
 

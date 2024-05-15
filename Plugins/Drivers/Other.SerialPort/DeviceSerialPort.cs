@@ -40,7 +40,7 @@ public class DeviceSerialPort : IDriver
 
     private readonly string _device;
 
-    private byte[] _lastRecv;
+    private byte[]? _lastRecv;
 
     public DeviceSerialPort(string device, ILogger logger)
     {

@@ -6,9 +6,9 @@ using System.Text;
 
 namespace Other.CAN;
 
-[DriverSupported("CAN")]
-[DriverInfo("CAN", "V1.0.0", "Copyleft gaein.cn")]
-public class DeviceCAN : IDriver
+[DriverSupported("CanOpen")]
+[DriverInfo("CanOpen", "V1.0.0", "Copyleft gaein.cn")]
+public class DeviceCanOpen : IDriver
 {
     public bool IsConnected => _socket is not null;
 
@@ -210,7 +210,7 @@ public class DeviceCAN : IDriver
         return resp;
     }
 
-    public DeviceCAN(string device, ILogger logger)
+    public DeviceCanOpen(string device, ILogger logger)
     {
         _logger = logger;
     }

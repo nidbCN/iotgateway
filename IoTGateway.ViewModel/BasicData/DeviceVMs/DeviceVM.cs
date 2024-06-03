@@ -32,7 +32,7 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVMs
             {
                 base.DoAdd();
                 //添加结束
-                if (this.Entity.DeviceTypeEnum == DeviceTypeEnum.Device)
+                if (Entity.DeviceTypeEnum == DeviceTypeEnum.Device)
                 {
                     var deviceService = Wtm.ServiceProvider.GetService(typeof(DeviceService)) as DeviceService;
                     deviceService.DrvierManager.AddConfigs(this.Entity.ID, this.Entity.DriverId);

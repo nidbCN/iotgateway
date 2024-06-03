@@ -13,7 +13,10 @@ namespace Plugin
     public class DeviceService : IDisposable
     {
         private readonly ILogger<DeviceService> _logger;
-        public DriverService DrvierManager;
+
+        public DriverService DrvierManager => _driverService;
+        private readonly DriverService _driverService;
+
         private static readonly Dictionary<Type, Func<Type, string, object>> ParserTable
             = new(){
                 { typeof(bool), (t, val) => val != "0" },
@@ -27,14 +30,14 @@ namespace Plugin
         private readonly string _connnectSetting = IoTBackgroundService.connnectSetting;
         private readonly DBTypeEnum _dbType = IoTBackgroundService.DbType;
 
-        public DeviceService(IConfiguration configRoot, DriverService drvierManager, MyMqttClient myMqttClient,
+        public DeviceService(IConfiguration configRoot, DriverService drvierService, MyMqttClient myMqttClient,
             MqttServer mqttServer, ILogger<DeviceService> logger)
         {
             _logger = logger;
-            DrvierManager = drvierManager;
+            _driverService = drvierService;
             _myMqttClient = myMqttClient;
             _mqttServer = mqttServer ?? throw new ArgumentNullException(nameof(mqttServer));
-            
+
             try
             {
                 using var dataContext = new DataContext(_connnectSetting, _dbType);
@@ -98,7 +101,7 @@ namespace Plugin
                 using (var dataContext = new DataContext(_connnectSetting, _dbType))
                 {
                     var systemManage = dataContext.Set<SystemConfig>().FirstOrDefault();
-                    var driver = DrvierManager.DriverInfos
+                    var driver = _driverService.DriverInfos
                         .SingleOrDefault(x => x.Type?.FullName == device.Driver.AssembleName);
                     if (driver is null)
                         _logger.LogError("找不到设备:[{device}]的驱动:[{driver}]", device.DeviceName, device.Driver.AssembleName);
@@ -134,15 +137,23 @@ namespace Plugin
                                 var settingVal = setting.Value;
                                 object val = settingVal;
 
-                                if (ParserTable.TryGetValue(type, out var parser))
+                                var tableType = type;
+                                if (type.BaseType == typeof(Enum))
+                                {
+                                    tableType = typeof(Enum);
+                                }
+
+                                if (ParserTable.TryGetValue(tableType, out var parser))
                                 {
                                     val = parser(type, settingVal);
                                 }
-
-                                var parseMethod = type.GetMethod("Parse", new[] { typeof(string) });
-                                if (parseMethod != null)
+                                else
                                 {
-                                    val = parseMethod.Invoke(null, new object[] { settingVal }) ?? settingVal;
+                                    var parseMethod = type.GetMethod("Parse", new[] { typeof(string) });
+                                    if (parseMethod != null)
+                                    {
+                                        val = parseMethod.Invoke(null, new object[] { settingVal }) ?? settingVal;
+                                    }
                                 }
 
                                 prop.SetValue(deviceObj, val);

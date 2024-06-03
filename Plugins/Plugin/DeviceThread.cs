@@ -23,8 +23,8 @@ namespace Plugin
         internal List<MethodInfo>? Methods { get; set; }
         private Task? _task;
         private readonly DateTime _tsStartDt = new(1970, 1, 1);
-        private readonly CancellationTokenSource _tokenSource = new CancellationTokenSource();
-        private ManualResetEvent resetEvent = new(true);
+        private readonly CancellationTokenSource _tokenSource = new();
+        private readonly ManualResetEvent resetEvent = new(true);
 
         public DeviceThread(Device device, IDriver driver, string projectId, MyMqttClient myMqttClient,
             MqttServer mqttServer, ILogger logger)
@@ -37,19 +37,23 @@ namespace Plugin
             _interpreter = new Interpreter();
             _logger = logger;
             _mqttServer = mqttServer;
-            Methods = Driver.GetType().GetMethods().Where(x => x.GetCustomAttribute(typeof(MethodAttribute)) != null)
+            Methods = Driver.GetType().GetMethods()
+                .Where(x => x.GetCustomAttribute(typeof(MethodAttribute)) != null)
                 .ToList();
+
+            // 自动运行
             if (Device.AutoStart)
             {
-                _logger.LogInformation($"线程已启动:{Device.DeviceName}");
+                _logger.LogInformation("线程已启动:{device}", Device.DeviceName);
 
                 if (Device.DeviceVariables != null)
                 {
-                    foreach (var item in Device.DeviceVariables)
+                    // 重置变量状态
+                    foreach (var vars in Device.DeviceVariables)
                     {
-                        item.StatusType = VaribaleStatusTypeEnum.Bad;
-                        if (string.IsNullOrWhiteSpace(item.Alias))
-                            item.Alias = string.Empty;
+                        vars.StatusType = VaribaleStatusTypeEnum.Bad;
+                        if (string.IsNullOrWhiteSpace(vars.Alias))
+                            vars.Alias = string.Empty;
                     }
                 }
                 CreateThread().Wait();
@@ -61,21 +65,26 @@ namespace Plugin
             _task = await Task.Factory.StartNew(async () =>
             {
                 await Task.Delay(5000);
-                //上传客户端属性
-                foreach (var deviceVariables in Device.DeviceVariables!.GroupBy(x => x.Alias))
+
+                // 上传客户端属性
+                foreach (var deviceVariables in Device.DeviceVariables
+                    !.GroupBy(x => x.Alias))
                 {
-                    _myMqttClient.UploadAttributeAsync(string.IsNullOrWhiteSpace(deviceVariables.Key)
+                    var deviceName = string.IsNullOrWhiteSpace(deviceVariables.Key)
                             ? Device.DeviceName
-                    : deviceVariables.Key,
-                        Device.DeviceConfigs.Where(x => x.DataSide == DataSide.ClientSide || x.DataSide == DataSide.AnySide)
-                            .ToDictionary(x => x.DeviceConfigName, x => x.Value));
+                            : deviceVariables.Key;
+
+                    await _myMqttClient.UploadAttributeAsync(deviceName,
+                        Device.DeviceConfigs
+                        .Where(x => x.DataSide == DataSide.ClientSide || x.DataSide == DataSide.AnySide)
+                        .ToDictionary(x => x.DeviceConfigName, x => x.Value));
                 }
 
                 while (true)
                 {
                     if (_tokenSource.IsCancellationRequested)
                     {
-                        _logger.LogInformation($"停止线程:{Device.DeviceName}");
+                        _logger.LogInformation("停止线程:{deviceName}", Device.DeviceName);
                         return;
                     }
 
@@ -84,60 +93,70 @@ namespace Plugin
                     {
                         if (Driver.IsConnected)
                         {
-                            foreach (var deviceVariables in Device.DeviceVariables.Where(x => x.ProtectType != ProtectTypeEnum.WriteOnly).GroupBy(x => x.Alias))
+                            foreach (var deviceVariables in Device.DeviceVariables
+                                                                .Where(x => x.ProtectType != ProtectTypeEnum.WriteOnly)
+                                                                .GroupBy(x => x.Alias))
                             {
                                 string deviceName = string.IsNullOrWhiteSpace(deviceVariables.Key)
                                     ? Device.DeviceName
                                     : deviceVariables.Key;
 
-                                Dictionary<string, List<PayLoad>> sendModel = new()
+                                var sendModel = new Dictionary<string, List<PayLoad>>()
                                             { { deviceName, new() } };
+
                                 var payLoad = new PayLoad() { Values = new() };
 
                                 if (deviceVariables.Any())
                                 {
-                                    foreach (var item in deviceVariables.OrderBy(x => x.Index))
+                                    foreach (var deviceVar in deviceVariables.OrderBy(x => x.Index))
                                     {
-                                        item.Value = null;
-                                        item.CookedValue = null;
-                                        item.StatusType = VaribaleStatusTypeEnum.Bad;
+                                        deviceVar.Value = null;
+                                        deviceVar.CookedValue = null;
+                                        deviceVar.StatusType = VaribaleStatusTypeEnum.Bad;
 
                                         await Task.Delay((int)Device.CmdPeriod);
 
+                                        // 构建返回值
                                         var ret = new DriverReturnValueModel();
                                         var ioarg = new DriverAddressIoArgModel
                                         {
-                                            ID = item.ID,
-                                            Address = item.DeviceAddress,
-                                            ValueType = item.DataType,
-                                            EndianType = item.EndianType
+                                            ID = deviceVar.ID,
+                                            Address = deviceVar.DeviceAddress,
+                                            ValueType = deviceVar.DataType,
+                                            EndianType = deviceVar.EndianType
                                         };
-                                        var method = Methods.FirstOrDefault(x => x.Name == item.Method);
-                                        if (method == null)
+                                        var method = Methods
+                                            ?.FirstOrDefault(x => x.Name == deviceVar.Method);
+
+                                        if (method is null)
+                                        {
                                             ret.StatusType = VaribaleStatusTypeEnum.MethodError;
+                                        }
                                         else
                                         {
                                             var arg = new object[] { ioarg };
                                             ret = (DriverReturnValueModel)method.Invoke(Driver,
                                                arg)!;
                                         }
-                                        item.EnqueueVariable(ret.Value);
+
+                                        deviceVar.EnqueueVariable(ret.Value);
+
                                         if (ret.StatusType == VaribaleStatusTypeEnum.Good &&
-                                            !string.IsNullOrWhiteSpace(item.Expressions?.Trim()))
+                                            !string.IsNullOrWhiteSpace(deviceVar.Expressions?.Trim()))
                                         {
-                                            var expressionText = DealMysqlStr(item.Expressions)
+                                            var expressionText = DealMysqlStr(deviceVar.Expressions)
                                                 .Replace("raw",
-                                                    item.Values[0] is bool
-                                                        ? $"Convert.ToBoolean(\"{item.Values[0]}\")"
-                                                        : item.Values[0]?.ToString())
+                                                    deviceVar.Values[0] is bool
+                                                        ? $"Convert.ToBoolean(\"{deviceVar.Values[0]}\")"
+                                                        : deviceVar.Values[0]?.ToString())
                                                 .Replace("$ppv",
-                                                    item.Values[2] is bool
-                                                        ? $"Convert.ToBoolean(\"{item.Values[2]}\")"
-                                                        : item.Values[2]?.ToString())
+                                                    deviceVar.Values[2] is bool
+                                                        ? $"Convert.ToBoolean(\"{deviceVar.Values[2]}\")"
+                                                        : deviceVar.Values[2]?.ToString())
                                                 .Replace("$pv",
-                                                    item.Values[1] is bool
-                                                        ? $"Convert.ToBoolean(\"{item.Values[1]}\")"
-                                                        : item.Values[1]?.ToString());
+                                                    deviceVar.Values[1] is bool
+                                                        ? $"Convert.ToBoolean(\"{deviceVar.Values[1]}\")"
+                                                        : deviceVar.Values[1]?.ToString());
 
                                             try
                                             {
@@ -149,40 +168,43 @@ namespace Plugin
                                             }
                                         }
                                         else
+                                        {
                                             ret.CookedValue = ret.Value;
+                                        }
 
+                                        if (deviceVar.IsUpload)
+                                        {
+                                            payLoad.Values[deviceVar.Name] = ret.CookedValue;
+                                        }
 
-                                        if (item.IsUpload)
-                                            payLoad.Values[item.Name] = ret.CookedValue;
+                                        ret.VarId = deviceVar.ID;
 
-                                        ret.VarId = item.ID;
-
-                                        //变化了才推送到mqttserver，用于前端展示
-                                        if ((item.Values[1] == null && item.Values[0] != null) ||
-                                            (item.Values[1] != null && item.Values[0] != null && JsonConvert.SerializeObject(item.Values[1]) != JsonConvert.SerializeObject(item.Values[0])))
+                                        // 变化了才推送到mqttserver，用于前端展示
+                                        if ((deviceVar.Values[1] == null && deviceVar.Values[0] != null) ||
+                                            (deviceVar.Values[1] != null && deviceVar.Values[0] != null && JsonConvert.SerializeObject(deviceVar.Values[1]) != JsonConvert.SerializeObject(deviceVar.Values[0])))
                                         {
                                             //这是设备变量列表要用的
                                             var msgInternal = new InjectedMqttApplicationMessage(
                                                 new MqttApplicationMessage()
                                                 {
-                                                    Topic = $"internal/v1/gateway/telemetry/{deviceName}/{item.Name}",
+                                                    Topic = $"internal/v1/gateway/telemetry/{deviceName}/{deviceVar.Name}",
                                                     Payload = Encoding.UTF8.GetBytes(JsonUtility.SerializeToJson(ret))
                                                 });
-                                            _mqttServer.InjectApplicationMessage(msgInternal);
+                                            await _mqttServer.InjectApplicationMessage(msgInternal);
                                             //这是在线组态要用的
                                             var msgConfigure = new InjectedMqttApplicationMessage(
                                                 new MqttApplicationMessage()
                                                 {
-                                                    Topic = $"v1/gateway/telemetry/{deviceName}/{item.Name}",
+                                                    Topic = $"v1/gateway/telemetry/{deviceName}/{deviceVar.Name}",
                                                     Payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ret.CookedValue))
                                                 });
-                                            _mqttServer.InjectApplicationMessage(msgConfigure);
+                                            await _mqttServer.InjectApplicationMessage(msgConfigure);
                                         }
 
-                                        item.Value = ret.Value;
-                                        item.CookedValue = ret.CookedValue;
-                                        item.Timestamp = ret.Timestamp;
-                                        item.StatusType = ret.StatusType;
+                                        deviceVar.Value = ret.Value;
+                                        deviceVar.CookedValue = ret.CookedValue;
+                                        deviceVar.Timestamp = ret.Timestamp;
+                                        deviceVar.StatusType = ret.StatusType;
                                     }
 
                                     payLoad.TS = (long)(DateTime.UtcNow - _tsStartDt).TotalMilliseconds;
@@ -201,8 +223,10 @@ namespace Plugin
 
                             }
 
-                            //只要有读取异常且连接正常就断开
-                            if (Device.DeviceVariables.Where(x => x.IsUpload && x.ProtectType != ProtectTypeEnum.WriteOnly).Any(x => x.StatusType != VaribaleStatusTypeEnum.Good) && Driver.IsConnected)
+                            // 只要有读取异常且连接正常就断开
+                            if (Device.DeviceVariables
+                                .Where(x => x.IsUpload && x.ProtectType != ProtectTypeEnum.WriteOnly)
+                                .Any(x => x.StatusType != VaribaleStatusTypeEnum.Good) && Driver.IsConnected)
                             {
                                 Driver.Close();
                                 Driver.Dispose();
@@ -234,9 +258,8 @@ namespace Plugin
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"线程循环异常,{Device.DeviceName}");
+                        _logger.LogError(ex, "线程循环异常,{deviceName}", Device.DeviceName);
                     }
-
 
                     await Task.Delay(Device.DeviceVariables!.Any() ? (int)Driver.MinPeriod : 10000);
                 }

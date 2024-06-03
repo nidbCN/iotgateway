@@ -69,6 +69,7 @@ public class DeviceSerialPort : IDriver
         catch (Exception e)
         {
             _logger.LogError(e, "Can not connect {port}", PortName);
+            _serialPort = null;
             return false;
         }
 

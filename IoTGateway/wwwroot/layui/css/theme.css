@@ -1,0 +1,94 @@
+:root {
+    --primary-color: #BECEB4;
+    --primary-dark: #764124;
+    --primary-decent: #D4EAE9;
+}
+
+.layui-btn {
+    background-color: var(--primary-color) !important;
+}
+
+.layui-form-checked {
+    background-color: var(--primary-color) !important;
+}
+
+.layui-slider-input-btn i:hover {
+    color: var(--primary-color) !important;
+}
+
+.layui-layout-admin .layui-logo {
+    color: var(--primary-color) !important;
+}
+
+.layui-bg-green {
+    background-color: var(--primary-color) !important;
+}
+
+.layui-border-green {
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+}
+
+.layui-font-green {
+    color: var(--primary-color) !important;
+}
+
+.layui-btn-primary:hover {
+    border-color: var(--primary-color) !important;
+}
+
+.layui-btn-group .layui-btn-primary:hover {
+    color: var(--primary-color) !important;
+}
+
+.layui-laypage a:hover {
+    color: var(--primary-color) !important;
+}
+
+.layui-laypage .layui-laypage-curr .layui-laypage-em {
+    background-color: var(--primary-color) !important;
+}
+
+.layui-laypage input:focus,
+.layui-laypage select:focus {
+    border-color: var(--primary-color) !important;
+}
+
+.layui-upload-drag .layui-icon {
+    color: var(--primary-color);
+}
+
+.layui-upload-drag[lay-over] {
+    border-color: var(--primary-color) !important
+}
+
+.layui-nav-tree .layui-nav-child dd.layui-this a {
+    background-color: var(--primary-color) !important;
+}
+
+.layui-nav-tree .layui-nav-bar {
+    background-color: var(--primary-color) !important;
+}
+
+.layui-tab-brief>.layui-tab-title .layui-this {
+    color: var(--primary-color) !important;
+}
+
+.layui-slider-input-btn i:hover {
+    color: var(--primary-color) !important;
+}
+
+.layui-input:focus,
+.layui-textarea:focus {
+    border-color: var(--primary-color) !important;
+}
+
+.layui-form .layui-input:focus,
+.layui-form .layui-textarea:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(192, 221, 248, 0.08);
+}
+
+.layui-input-wrap .layui-input:focus+.layui-input-split {
+    border-color: var(--primary-color) !important;
+}

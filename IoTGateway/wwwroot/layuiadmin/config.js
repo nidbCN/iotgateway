@@ -61,6 +61,12 @@ layui.define(['laytpl', 'layer', 'element', 'util'], function (exports) {
         , theme: {
             //内置主题配色方案
             color: [{
+                main: '#764124'
+                , logo: '#5D311E'
+                , selected: '#BECEB4'
+                , header: '#BECEB4'
+                , alias: 'ss3' //韶山三
+            }, {
                 main: '#344058'
                 , logo: '#0085E8'
                 , selected: '#1E9FFF'

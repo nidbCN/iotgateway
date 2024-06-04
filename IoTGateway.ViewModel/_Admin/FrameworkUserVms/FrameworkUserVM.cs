@@ -50,43 +50,41 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
 
         public override async Task DoAddAsync()
         {
-            using (var trans = DC.BeginTransaction())
+            await using var trans = DC.BeginTransaction();
+            if (SelectedRolesCodes != null)
             {
-                if (SelectedRolesCodes != null)
+                foreach (var r in SelectedRolesCodes
+                             .Select(code => new FrameworkUserRole
+                             {
+                                 RoleCode = code,
+                                 UserCode = Entity.ITCode
+                             }))
                 {
-                    foreach (var rolecode in SelectedRolesCodes)
-                    {
-                        FrameworkUserRole r = new FrameworkUserRole
-                        {
-                            RoleCode = rolecode,
-                            UserCode = Entity.ITCode
-                        };
-                        DC.AddEntity(r);
-                    }
+                    DC.AddEntity(r);
                 }
-                if (SelectedGroupCodes != null)
+            }
+            if (SelectedGroupCodes != null)
+            {
+                foreach (var g in SelectedGroupCodes
+                             .Select(code => new FrameworkUserGroup
+                         {
+                             GroupCode = code,
+                             UserCode = Entity.ITCode
+                         }))
                 {
-                    foreach (var groupcode in SelectedGroupCodes)
-                    {
-                        FrameworkUserGroup g = new FrameworkUserGroup
-                        {
-                            GroupCode = groupcode,
-                            UserCode = Entity.ITCode
-                        };
-                        DC.AddEntity(g);
-                    }
+                    DC.AddEntity(g);
                 }
-                Entity.IsValid = true;
-                Entity.Password = Utils.GetMD5String(Entity.Password);
-                await base.DoAddAsync();
-                if (MSD.IsValid)
-                {
-                    trans.Commit();
-                }
-                else
-                {
-                    trans.Rollback();
-                }
+            }
+            Entity.IsValid = true;
+            Entity.Password = Utils.GetMD5String(Entity.Password);
+            await base.DoAddAsync();
+            if (MSD.IsValid)
+            {
+                await trans.CommitAsync();
+            }
+            else
+            {
+                await trans.RollbackAsync();
             }
         }
 
@@ -96,80 +94,87 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
             {
                 FC.Remove("Entity.ITCode");
             }
-            using (var trans = DC.BeginTransaction())
+
+            await using var trans = DC.BeginTransaction();
+            if (SelectedRolesCodes != null)
             {
-                if (SelectedRolesCodes != null)
+                var deleteItems = new List<Guid>();
+                deleteItems.AddRange(DC.Set<FrameworkUserRole>()
+                    .AsNoTracking()
+                    .Where(x => x.UserCode == Entity.ITCode)
+                    .Select(x => x.ID));
+                foreach (var item in deleteItems)
                 {
-                    List<Guid> todelete = new List<Guid>();
-                    todelete.AddRange(DC.Set<FrameworkUserRole>().AsNoTracking().Where(x => x.UserCode == Entity.ITCode).Select(x => x.ID));
-                    foreach (var item in todelete)
-                    {
-                        DC.DeleteEntity(new FrameworkUserRole { ID = item });
-                    }
+                    DC.DeleteEntity(new FrameworkUserRole { ID = item });
                 }
-                if (SelectedGroupCodes != null)
+            }
+            if (SelectedGroupCodes != null)
+            {
+                var deleteItems = new List<Guid>();
+                deleteItems.AddRange(DC.Set<FrameworkUserGroup>()
+                    .AsNoTracking()
+                    .Where(x => x.UserCode == Entity.ITCode)
+                    .Select(x => x.ID));
+                foreach (var item in deleteItems)
                 {
-                    List<Guid> todelete = new List<Guid>();
-                    todelete.AddRange(DC.Set<FrameworkUserGroup>().AsNoTracking().Where(x => x.UserCode == Entity.ITCode).Select(x => x.ID));
-                    foreach (var item in todelete)
-                    {
-                        DC.DeleteEntity(new FrameworkUserGroup { ID = item });
-                    }
+                    DC.DeleteEntity(new FrameworkUserGroup { ID = item });
                 }
-                if (SelectedRolesCodes != null)
+            }
+            if (SelectedRolesCodes != null)
+            {
+                foreach (var r in SelectedRolesCodes
+                             .Select(code => new FrameworkUserRole
+                         {
+                             RoleCode = code,
+                             UserCode = Entity.ITCode
+                         }))
                 {
-                    foreach (var rolecode in SelectedRolesCodes)
-                    {
-                        FrameworkUserRole r = new FrameworkUserRole
-                        {
-                            RoleCode = rolecode,
-                            UserCode = Entity.ITCode
-                        };
-                        DC.AddEntity(r);
-                    }
+                    DC.AddEntity(r);
                 }
-                if (SelectedGroupCodes != null)
+            }
+            if (SelectedGroupCodes != null)
+            {
+                foreach (var g in SelectedGroupCodes
+                             .Select(code => new FrameworkUserGroup
+                         {
+                             GroupCode = code,
+                             UserCode = Entity.ITCode
+                         }))
                 {
-                    foreach (var groupcode in SelectedGroupCodes)
-                    {
-                        FrameworkUserGroup g = new FrameworkUserGroup
-                        {
-                            GroupCode = groupcode,
-                            UserCode = Entity.ITCode
-                        };
-                        DC.AddEntity(g);
-                    }
+                    DC.AddEntity(g);
                 }
-                await base.DoEditAsync(updateAllFields);
-                if (MSD.IsValid)
-                {
-                    trans.Commit();
-                    await Wtm.RemoveUserCache(Entity.ITCode.ToString());
-                }
-                else
-                {
-                    trans.Rollback();
-                }
+            }
+            await base.DoEditAsync(updateAllFields);
+            if (MSD.IsValid)
+            {
+                await trans.CommitAsync();
+                await Wtm.RemoveUserCache(Entity.ITCode);
+            }
+            else
+            {
+                await trans.RollbackAsync();
             }
         }
 
         public override async Task DoDeleteAsync()
         {
-            using (var tran = DC.BeginTransaction())
+            await using (var tran = DC.BeginTransaction())
             {
                 try
                 {
                     await base.DoDeleteAsync();
-                    var ur = DC.Set<FrameworkUserRole>().Where(x => x.UserCode == Entity.ITCode);
-                    DC.Set<FrameworkUserRole>().RemoveRange(ur);
-                    var ug = DC.Set<FrameworkUserGroup>().Where(x => x.UserCode == Entity.ITCode);
-                    DC.Set<FrameworkUserGroup>().RemoveRange(ug);
-                    DC.SaveChanges();
-                    tran.Commit();
+                    var users = DC.Set<FrameworkUserRole>()
+                        .Where(x => x.UserCode == Entity.ITCode);
+                    DC.Set<FrameworkUserRole>().RemoveRange(users);
+                    var userGroups = DC.Set<FrameworkUserGroup>()
+                        .Where(x => x.UserCode == Entity.ITCode);
+                    DC.Set<FrameworkUserGroup>().RemoveRange(userGroups);
+                    await DC.SaveChangesAsync();
+                    await tran.CommitAsync();
                 }
                 catch
                 {
-                    tran.Rollback();
+                    await tran.RollbackAsync();
                 }
             }
             await Wtm.RemoveUserCache(Entity.ITCode.ToString());

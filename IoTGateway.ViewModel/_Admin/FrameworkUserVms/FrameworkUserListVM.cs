@@ -11,25 +11,22 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
 {
     public class FrameworkUserListVM : BasePagedListVM<FrameworkUser_View, FrameworkUserSearcher>
     {
-        protected override List<GridAction> InitGridAction()
-        {
-            return new List<GridAction>
+        protected override List<GridAction> InitGridAction() =>
+            new()
             {
                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.Create, "", "_Admin",dialogWidth: 800),
                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.Edit, "", "_Admin",dialogWidth: 800),
                 this.MakeAction("FrameworkUser","Password",Localizer?["Login.ChangePassword"],Localizer?["Login.ChangePassword"], GridActionParameterTypesEnum.SingleId,"_Admin",400).SetShowInRow(true),
                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.Delete, "","_Admin",dialogWidth: 800),
                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.Details, "", "_Admin",dialogWidth: 600),
-                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.BatchEdit, "","_Admin", dialogWidth: 800),
-               this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.BatchDelete, "","_Admin", dialogWidth: 800),
+                this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.BatchEdit, "","_Admin", dialogWidth: 800),
+                this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.BatchDelete, "","_Admin", dialogWidth: 800),
                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.Import, "","_Admin", dialogWidth: 800),
                 this.MakeStandardAction("FrameworkUser", GridActionStandardTypesEnum.ExportExcel, "","_Admin"),
             };
-        }
 
-        protected override IEnumerable<IGridColumn<FrameworkUser_View>> InitGridHeader()
-        {
-            return new List<GridColumn<FrameworkUser_View>>{
+        protected override IEnumerable<IGridColumn<FrameworkUser_View>> InitGridHeader() =>
+            new List<GridColumn<FrameworkUser_View>>{
                 this.MakeGridHeader(x => x.ITCode),
                 this.MakeGridHeader(x => x.Name),
                 this.MakeGridHeader(x => x.Gender,80),
@@ -40,20 +37,18 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
                 this.MakeGridHeader(x => x.IsValid).SetHeader(Localizer["Sys.Enable"]).SetWidth(80),
                 this.MakeGridHeaderAction(width: 280)
             };
-        }
 
-        private List<ColumnFormatInfo> PhotoIdFormat(FrameworkUser_View entity, object val)
-        {
-            return new List<ColumnFormatInfo>
+        private List<ColumnFormatInfo> PhotoIdFormat(FrameworkUser_View entity, object val) =>
+            new()
             {
                 ColumnFormatInfo.MakeDownloadButton(ButtonTypesEnum.Button,entity.PhotoId),
                 ColumnFormatInfo.MakeViewButton(ButtonTypesEnum.Button,entity.PhotoId),
             };
-        }
 
         public override IOrderedQueryable<FrameworkUser_View> GetSearchQuery()
         {
-            var query = DC.Set<FrameworkUser>()
+            var query = DC
+                .Set<FrameworkUser>()
                 .CheckContain(Searcher.ITCode,x=>x.ITCode)
                 .CheckContain(Searcher.Name, x=>x.Name)
                 .CheckEqual(Searcher.IsValid, x=>x.IsValid)

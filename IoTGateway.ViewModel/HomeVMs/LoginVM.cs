@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -27,37 +28,30 @@ namespace IoTGateway.ViewModel.HomeVMs
             get
             {
                 var rv = _redirect;
-                if (string.IsNullOrEmpty(rv) == false)
+                if (string.IsNullOrEmpty(rv)) return rv;
+                if (rv.StartsWith("/#") == false)
                 {
-                    if (rv.StartsWith("/#") == false)
-                    {
-                        rv = "/#" + rv;
-                    }
-                    if (rv.Split("#/").Length > 2)
-                    {
-                        int index = rv.LastIndexOf("#/");
-                        rv = rv[..index];
-                    }
+                    rv = "/#" + rv;
                 }
+
+                if (rv.Split("#/").Length <= 2) return rv;
+                var index = rv.LastIndexOf("#/", StringComparison.Ordinal);
+                rv = rv[..index];
                 return rv;
             }
-            set { _redirect = value; }
+            set => _redirect = value;
         }
-
-        [Display(Name = "Login.InputValidation")]
-        public string VerifyCode { get; set; }
 
         /// <summary>
         /// 进行登录
         /// </summary>
-        /// <param name="ignorePris">外部传递的页面权限</param>
         /// <returns>登录用户的信息</returns>
-        public async Task<LoginUserInfo> DoLoginAsync(bool ignorePris = false)
+        public async Task<LoginUserInfo> DoLoginAsync()
         {
             //根据用户名和密码查询用户
             var rv = await DC.Set<FrameworkUser>()
-                .Where(x => x.ITCode.ToLower() == ITCode.ToLower() 
-                    && x.Password == Utils.GetMD5String(Password) 
+                .Where(x => x.ITCode.ToLower() == ITCode.ToLower()
+                    && x.Password == Utils.GetMD5String(Password)
                     && x.IsValid)
                 //.Where(x => x.ITCode.ToLower() == ITCode.ToLower() && x.IsValid)
                 .Select(x => new { itcode = x.ITCode, id = x.GetID() })
@@ -69,17 +63,15 @@ namespace IoTGateway.ViewModel.HomeVMs
                 MSD.AddModelError("", Localizer["Sys.LoginFailed"]);
                 return null;
             }
-            else
+
+            var user = new LoginUserInfo
             {
-                LoginUserInfo user = new LoginUserInfo
-                {
-                    ITCode = rv.itcode,
-                    UserId = rv.id.ToString()
-                };
-                //读取角色，用户组，页面权限，数据权限等框架配置信息
-                await user.LoadBasicInfoAsync(Wtm);
-                return user;
-            }
+                ITCode = rv.itcode,
+                UserId = rv.id.ToString()
+            };
+            //读取角色，用户组，页面权限，数据权限等框架配置信息
+            await user.LoadBasicInfoAsync(Wtm);
+            return user;
         }
     }
 }

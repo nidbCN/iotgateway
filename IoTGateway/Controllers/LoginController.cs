@@ -20,13 +20,14 @@ namespace IoTGateway.Controllers
         [ActionDescription("Login")]
         public IActionResult Login()
         {
-            LoginVM vm = Wtm.CreateVM<LoginVM>();
+            var vm = Wtm.CreateVM<LoginVM>();
             vm.Redirect = HttpContext.Request.Query["ReturnUrl"];
-            if (Wtm.ConfigInfo.IsQuickDebug == true)
-            {
-                vm.ITCode = "admin";
-                vm.Password = "000000";
-            }
+
+            if (Wtm.ConfigInfo.IsQuickDebug != true) return View(vm);
+            
+            vm.ITCode = "admin";
+            vm.Password = "000000";
+
             return View(vm);
         }
 
@@ -35,58 +36,27 @@ namespace IoTGateway.Controllers
         public async Task<ActionResult> Login(LoginVM vm)
         {
             var user = await vm.DoLoginAsync();
-            if (user == null)
+            if (user is null)
             {
                 return View(vm);
             }
-            else
+
+            Wtm.LoginUserInfo = user;
+            var url = string.IsNullOrEmpty(vm.Redirect) ? "/" : vm.Redirect;
+
+            AuthenticationProperties properties = null;
+            if (vm.RememberLogin)
             {
-                Wtm.LoginUserInfo = user;
-                var url = string.IsNullOrEmpty(vm.Redirect) ? "/" : vm.Redirect;
-
-                AuthenticationProperties properties = null;
-                if (vm.RememberLogin)
+                properties = new ()
                 {
-                    properties = new AuthenticationProperties
-                    {
-                        IsPersistent = true,
-                        ExpiresUtc = DateTimeOffset.UtcNow.Add(TimeSpan.FromDays(30))
-                    };
-                }
-
-                var principal = user.CreatePrincipal();
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, properties);
-                return Redirect(HttpUtility.UrlDecode(url));
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.Add(TimeSpan.FromDays(30))
+                };
             }
-        }
 
-        [Public]
-        public IActionResult Reg()
-        {
-            var vm = Wtm.CreateVM<RegVM>();
-            return PartialView(vm);
-        }
-
-        [Public]
-        [HttpPost]
-        public IActionResult Reg(RegVM vm)
-        {
-            if (!ModelState.IsValid)
-            {
-                return PartialView(vm);
-            }
-            else
-            {
-                var rv = vm.DoReg();
-                if (rv == true)
-                {
-                    return FFResult().CloseDialog().Message(Localizer["Reg.Success"]);
-                }
-                else
-                {
-                    return PartialView(vm);
-                }
-            }
+            var principal = user.CreatePrincipal();
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, properties);
+            return Redirect(HttpUtility.UrlDecode(url));
         }
 
         [AllRights]
@@ -117,11 +87,9 @@ namespace IoTGateway.Controllers
             {
                 return PartialView(vm);
             }
-            else
-            {
-                vm.DoChange();
-                return FFResult().CloseDialog().Alert(Localizer["Login.ChangePasswordSuccess"]);
-            }
+
+            vm.DoChange();
+            return FFResult().CloseDialog().Alert(Localizer["Login.ChangePasswordSuccess"]);
         }
 
     }

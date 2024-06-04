@@ -1,6 +1,4 @@
 // WTM默认页面 Wtm buidin page
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WalkingTec.Mvvm.Core;
@@ -12,9 +10,9 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkRoleVMs
     {
         public override DuplicatedInfo<FrameworkRole> SetDuplicatedCheck()
         {
-            var rv = CreateFieldsInfo(SimpleField(x => x.RoleName));
-            rv.AddGroup(SimpleField(x => x.RoleCode));
-            return rv;
+            var fieldsInfo = CreateFieldsInfo(SimpleField(x => x.RoleName));
+            fieldsInfo.AddGroup(SimpleField(x => x.RoleCode));
+            return fieldsInfo;
         }
 
         public override void DoEdit(bool updateAllFields = false)
@@ -28,21 +26,24 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkRoleVMs
 
         public override async Task DoDeleteAsync()
         {
-            using (var tran = DC.BeginTransaction())
+            await using var tran = DC.BeginTransaction();
+            try
             {
-                try
-                {
-                    await base.DoDeleteAsync();
-                    var ur = DC.Set<FrameworkUserRole>().Where(x => x.RoleCode == Entity.RoleCode);
-                    DC.Set<FrameworkUserRole>().RemoveRange(ur);
-                    DC.SaveChanges();
-                    tran.Commit();
-                    await Wtm.RemoveUserCache(ur.Select(x=>x.UserCode).ToArray());
-                }
-                catch
-                {
-                    tran.Rollback();
-                }
+                await base.DoDeleteAsync();
+                var userRoles = DC
+                    .Set<FrameworkUserRole>()
+                    .Where(x => x.RoleCode == Entity.RoleCode);
+                DC.Set<FrameworkUserRole>()
+                    .RemoveRange(userRoles);
+                await DC.SaveChangesAsync();
+                await tran.CommitAsync();
+                await Wtm.RemoveUserCache(userRoles
+                    .Select(x => x.UserCode)
+                    .ToArray());
+            }
+            catch
+            {
+                await tran.RollbackAsync();
             }
         }
     }

@@ -19,7 +19,7 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
         public FrameworkUserBatchVM()
         {
             ListVM = new FrameworkUserListVM();
-            LinkedVM = new FrameworkUser_BatchEdit();
+            LinkedVM = new();
         }
 
         protected override void InitVM()
@@ -32,24 +32,25 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
             var entityList = DC.Set<FrameworkUser>().AsNoTracking().CheckIDs(Ids.ToList()).ToList();
             foreach (var entity in entityList)
             {
-                List<Guid> todelete = new List<Guid>();
-                todelete.AddRange(DC.Set<FrameworkUserRole>().AsNoTracking().Where(x => x.UserCode == entity.ITCode).Select(x => x.ID));
-                foreach (var item in todelete)
+                var deleteItems = new List<Guid>();
+                deleteItems.AddRange(DC.Set<FrameworkUserRole>()
+                    .AsNoTracking()
+                    .Where(x => x.UserCode == entity.ITCode)
+                    .Select(x => x.ID));
+                foreach (var item in deleteItems)
                 {
                     DC.DeleteEntity(new FrameworkUserRole { ID = item });
                 }
 
-                if (LinkedVM.SelectedRolesCodes != null)
+                if (LinkedVM.SelectedRolesCodes == null) continue;
+                foreach (var r in LinkedVM.SelectedRolesCodes
+                             .Select(roleCode => new FrameworkUserRole
+                         {
+                             RoleCode = roleCode,
+                             UserCode = entity.ITCode
+                         }))
                 {
-                    foreach (var rolecode in LinkedVM.SelectedRolesCodes)
-                    {
-                        FrameworkUserRole r = new FrameworkUserRole
-                        {
-                            RoleCode = rolecode,
-                            UserCode = entity.ITCode
-                        };
-                        DC.AddEntity(r);
-                    }
+                    DC.AddEntity(r);
                 }
             }
             return base.DoBatchEdit();
@@ -64,7 +65,9 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
 
         protected override void InitVM()
         {
-            AllRoles = DC.Set<FrameworkRole>().GetSelectListItems(Wtm, y => y.RoleName, y => y.RoleCode);
+            AllRoles = DC
+                .Set<FrameworkRole>()
+                .GetSelectListItems(Wtm, role => role.RoleName, roleValue => roleValue.RoleCode);
         }
     }
 

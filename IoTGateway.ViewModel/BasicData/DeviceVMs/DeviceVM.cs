@@ -35,7 +35,7 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVMs
                 if (Entity.DeviceTypeEnum == DeviceTypeEnum.Device)
                 {
                     var deviceService = Wtm.ServiceProvider.GetService(typeof(DeviceService)) as DeviceService;
-                    deviceService.DriverManager.AddConfigs(this.Entity.ID, this.Entity.DriverId);
+                    deviceService.DriverService.AddConfigs(this.Entity.ID, this.Entity.DriverId);
                     var device = DC.Set<Device>().Where(x => x.ID == Entity.ID).Include(x=>x.Parent).Include(x => x.Driver).SingleOrDefault();
                     deviceService.CreateDeviceThread(device);
 

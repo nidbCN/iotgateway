@@ -1,123 +1,134 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using IoTGateway.DataAccess;
+using IoTGateway.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using MQTTnet.Server;
 using PluginInterface;
 using System.Reflection;
 using WalkingTec.Mvvm.Core;
-using IoTGateway.DataAccess;
-using IoTGateway.Model;
-using MQTTnet.Server;
-using Microsoft.Extensions.Logging;
 
-namespace Plugin
+namespace Plugin;
+
+public class DeviceService : IDisposable
 {
-    public class DeviceService : IDisposable
+    public DriverService DriverService { get; }
+
+    // ReSharper disable once NotAccessedField.Local
+    private readonly IConfiguration _configRoot;
+    private readonly MyMqttClient _mqttClient;
+    private readonly MqttServer _mqttServer;
+    private readonly ILogger<DeviceService> _logger;
+
+    private static readonly Dictionary<Type, Func<Type, string, object>> ParserTable
+        = new(){
+                { typeof(bool), (_, val) => val != "0" },
+                { typeof(string), (_,val) => val },
+                { typeof(Enum), Enum.Parse },
+        };
+
+    public List<DeviceThread> DeviceThreads = new();
+
+    private readonly string _connectSetting = IoTBackgroundService.connnectSetting;
+    private readonly DBTypeEnum _dbType = IoTBackgroundService.DbType;
+
+    public DeviceService(IConfiguration configRoot,
+        DriverService driverService,
+        MyMqttClient mqttClient,
+        MqttServer mqttServer,
+        ILogger<DeviceService> logger)
     {
-        private readonly ILogger<DeviceService> _logger;
+        ArgumentNullException.ThrowIfNull(mqttServer);
 
-        public DriverService DrvierManager => _driverService;
-        private readonly DriverService _driverService;
+        (_configRoot, DriverService, _mqttClient, _mqttServer, _logger)
+            = (configRoot, driverService, mqttClient, mqttServer, logger);
 
-        private static readonly Dictionary<Type, Func<Type, string, object>> ParserTable
-            = new(){
-                { typeof(bool), (t, val) => val != "0" },
-                { typeof(string), (t,val) => val },
-                { typeof(Enum), (t, val) => Enum.Parse(t, val) },
-            };
-
-        public List<DeviceThread> DeviceThreads = new();
-        private readonly MyMqttClient _myMqttClient;
-        private readonly MqttServer _mqttServer;
-        private readonly string _connnectSetting = IoTBackgroundService.connnectSetting;
-        private readonly DBTypeEnum _dbType = IoTBackgroundService.DbType;
-
-        public DeviceService(IConfiguration configRoot, DriverService drvierService, MyMqttClient myMqttClient,
-            MqttServer mqttServer, ILogger<DeviceService> logger)
+        try
         {
-            _logger = logger;
-            _driverService = drvierService;
-            _myMqttClient = myMqttClient;
-            _mqttServer = mqttServer ?? throw new ArgumentNullException(nameof(mqttServer));
+            using var dataContext = new DataContext(_connectSetting, _dbType);
+            // 从数据库中筛选出设备
+            var devices = dataContext.Set<Device>()
+                .Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
+                .Include(x => x.Parent)
+                .Include(x => x.Driver)
+                .Include(x => x.DeviceConfigs)
+                .Include(x => x.DeviceVariables)
+                .AsNoTracking()
+                .ToList();
+            _logger.LogInformation("Loaded Devices Count: {count}", devices.Count);
 
-            try
-            {
-                using var dataContext = new DataContext(_connnectSetting, _dbType);
-                var devices = dataContext.Set<Device>()
-                    .Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
-                    .Include(x => x.Parent)
-                    .Include(x => x.Driver)
-                    .Include(x => x.DeviceConfigs)
-                    .Include(x => x.DeviceVariables)
-                    .AsNoTracking()
-                    .ToList();
-                _logger.LogInformation("Loaded Devices Count: {count}", devices.Count);
-
-                // 为所有设备创建线程
-                Parallel.ForEach(devices, CreateDeviceThread);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "LoadDevicesError.");
-            }
+            // 为所有设备创建线程
+            Parallel.ForEach(devices, CreateDeviceThread);
         }
-
-        /// <summary>
-        /// 更新设备
-        /// </summary>
-        /// <param name="device"></param>
-        public void UpdateDevice(Device device)
+        catch (Exception ex)
         {
-            try
-            {
-                _logger.LogInformation("UpdateDevice Start:{device}", device.DeviceName);
-                RemoveDeviceThread(device);
-                CreateDeviceThread(device);
-                _logger.LogInformation("UpdateDevice End:{device}", device.DeviceName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "UpdateDevice Error:{device}", device.DeviceName);
-            }
+            _logger.LogError(ex, "LoadDevicesError.");
         }
+    }
 
-        /// <summary>
-        /// 更新多个设备
-        /// </summary>
-        /// <param name="devices"></param>
-        public void UpdateDevices(IList<Device> devices)
+    /// <summary>
+    /// 更新设备
+    /// </summary>
+    /// <param name="device"></param>
+    public void UpdateDevice(Device device)
+    {
+        try
         {
-            foreach (var device in devices)
-                UpdateDevice(device);
+            _logger.LogInformation("UpdateDevice Start:{device}", device.DeviceName);
+            RemoveDeviceThread(device);
+            CreateDeviceThread(device);
+            _logger.LogInformation("UpdateDevice End:{device}", device.DeviceName);
         }
-
-        /// <summary>
-        /// 创建设备线程
-        /// </summary>
-        /// <param name="device"></param>
-        public void CreateDeviceThread(Device device)
+        catch (Exception ex)
         {
-            try
+            _logger.LogError(ex, "UpdateDevice Error:{device}", device.DeviceName);
+        }
+    }
+
+    /// <summary>
+    /// 更新多个设备
+    /// </summary>
+    /// <param name="devices"></param>
+    public void UpdateDevices(IList<Device> devices)
+    {
+        foreach (var device in devices)
+            UpdateDevice(device);
+    }
+
+    /// <summary>
+    /// 创建设备线程
+    /// </summary>
+    /// <param name="device"></param>
+    public void CreateDeviceThread(Device device)
+    {
+        try
+        {
+            _logger.LogInformation("开始创建设备 {device} 线程", device.DeviceName);
+            using (var dataContext = new DataContext(_connectSetting, _dbType))
             {
-                _logger.LogInformation("CreateDeviceThread Start:{device}", device.DeviceName);
-                using (var dataContext = new DataContext(_connnectSetting, _dbType))
+                var systemManage = dataContext
+                    .Set<SystemConfig>()
+                    .FirstOrDefault();
+                var driver = DriverService.DriverInfos
+                    .SingleOrDefault(x => x.Type?.FullName == device.Driver.AssembleName);
+                if (driver is null)
+                    _logger.LogError("找不到设备:[{device}]的驱动:[{driver}]", device.DeviceName, device.Driver.AssembleName);
+                else
                 {
-                    var systemManage = dataContext.Set<SystemConfig>().FirstOrDefault();
-                    var driver = _driverService.DriverInfos
-                        .SingleOrDefault(x => x.Type?.FullName == device.Driver.AssembleName);
-                    if (driver is null)
-                        _logger.LogError("找不到设备:[{device}]的驱动:[{driver}]", device.DeviceName, device.Driver.AssembleName);
-                    else
+                    var settingList = dataContext.Set<DeviceConfig>()
+                        .Where(x => x.DeviceId == device.ID)
+                        .AsNoTracking()
+                        .ToList();
+
+                    var types = new[] { typeof(string), typeof(ILogger) };
+                    var param = new object[] { device.DeviceName, _logger };
+
+                    // 获取构造函数 (string deviceName, ILogger logger)
+                    var constructor = driver.Type?.GetConstructor(types);
+
+                    // 能够正常创建对象再赋值
+                    if (constructor?.Invoke(param) is IDriver driverObj && systemManage != null)
                     {
-                        var settingList = dataContext.Set<DeviceConfig>()
-                            .Where(x => x.DeviceId == device.ID)
-                            .AsNoTracking()
-                            .ToList();
-
-                        var types = new Type[] { typeof(string), typeof(ILogger) };
-                        var param = new object[] { device.DeviceName, _logger };
-
-                        var constructor = driver.Type?.GetConstructor(types);
-                        var deviceObj = constructor?.Invoke(param) as IDriver;
-
                         // 将设置中的值赋值到实例的字段中
                         var propList = driver.Type?.GetProperties();
 
@@ -156,109 +167,111 @@ namespace Plugin
                                     }
                                 }
 
-                                prop.SetValue(deviceObj, val);
+                                // 设置字段的值
+                                prop.SetValue(driverObj, val);
                             }
                         }
 
-                        if (deviceObj != null && systemManage != null)
-                        {
-                            var deviceThread = new DeviceThread(device, deviceObj, systemManage.GatewayName,
-                                _myMqttClient,
-                                _mqttServer, _logger);
-                            DeviceThreads.Add(deviceThread);
-                        }
+                        // 将线程添加到线程池
+                        DeviceThreads.Add(new(
+                            device,
+                            driverObj,
+                            systemManage.GatewayName,
+                            _mqttClient,
+                            _mqttServer, _logger));
                     }
                 }
-
-                _logger.LogInformation("CreateDeviceThread End:{device}", device.DeviceName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation(ex, "CreateDeviceThread Error:{device}", device.DeviceName);
-            }
-        }
-
-        /// <summary>
-        /// 创建多个设备线程
-        /// </summary>
-        /// <param name="devices"></param>
-        public void CreateDeviceThreads(List<Device> devices)
-        {
-            foreach (Device device in devices)
-                CreateDeviceThread(device);
-        }
-
-        /// <summary>
-        /// 删除设备线程
-        /// </summary>
-        /// <param name="devices"></param>
-        public void RemoveDeviceThread(Device devices)
-        {
-            var deviceThread = DeviceThreads
-                .FirstOrDefault(x => x.Device.ID == devices.ID);
-            if (deviceThread != null)
-            {
-                deviceThread.StopThread();
-                deviceThread.Dispose();
-                DeviceThreads.Remove(deviceThread);
-            }
-        }
-
-        /// <summary>
-        /// 删除多个设备线程
-        /// </summary>
-        /// <param name="devices"></param>
-        public void RemoveDeviceThreads(List<Device> devices)
-        {
-            foreach (var device in devices)
-                RemoveDeviceThread(device);
-        }
-
-        /// <summary>
-        /// 获取设备驱动（选择框）
-        /// </summary>
-        /// <param name="deviceId"></param>
-        /// <returns></returns>
-        public List<ComboSelectListItem> GetDriverMethods(Guid? deviceId)
-        {
-            var driverFilesComboSelect = new List<ComboSelectListItem>();
-            try
-            {
-                _logger.LogInformation("GetDriverMethods Start:{deviceId}", deviceId);
-                var methodInfos = DeviceThreads
-                    .FirstOrDefault(x => x.Device.ID == deviceId)
-                    ?.Methods
-                    ?.Select(m => new ComboSelectListItem()
-                    {
-                        Text = m.Name,
-                        Value = m.Name
-                    })
-                    .ToList();
-
-                _logger.LogInformation("GetDriverMethods End:{deviceId}, Count:{cnt}", deviceId, methodInfos?.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "GetDriverMethods Error:{deviceId}", deviceId);
             }
 
-            return driverFilesComboSelect;
+            _logger.LogInformation("完成创建设备 {device} 线程", device.DeviceName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation(ex, "创建设备 {device} 线程错误", device.DeviceName);
+        }
+    }
+
+    /// <summary>
+    /// 创建多个设备线程
+    /// </summary>
+    /// <param name="devices"></param>
+    public void CreateDeviceThreads(List<Device> devices)
+    {
+        foreach (var device in devices)
+            CreateDeviceThread(device);
+    }
+
+    /// <summary>
+    /// 删除设备线程
+    /// </summary>
+    /// <param name="devices"></param>
+    public void RemoveDeviceThread(Device devices)
+    {
+        // 查找设备线程
+        var deviceThread = DeviceThreads
+            .FirstOrDefault(x => x.Device.ID == devices.ID);
+        if (deviceThread == null) return;
+
+        // 停止并销毁设备线程
+        deviceThread.StopThread();
+        deviceThread.Dispose();
+        DeviceThreads.Remove(deviceThread);
+    }
+
+    /// <summary>
+    /// 删除多个设备线程
+    /// </summary>
+    /// <param name="devices"></param>
+    public void RemoveDeviceThreads(List<Device> devices)
+    {
+        foreach (var device in devices)
+            RemoveDeviceThread(device);
+    }
+
+    /// <summary>
+    /// 获取设备驱动（选择框）
+    /// </summary>
+    /// <param name="deviceId"></param>
+    /// <returns></returns>
+    public List<ComboSelectListItem> GetDriverMethods(Guid? deviceId)
+    {
+        var driverFilesComboSelect = new List<ComboSelectListItem>();
+        try
+        {
+            _logger.LogInformation("开始获取驱动{deviceId}方法", deviceId);
+            var methodInfos = DeviceThreads
+                .FirstOrDefault(x => x.Device.ID == deviceId)
+                ?.Methods
+                ?.Select(m => new ComboSelectListItem()
+                {
+                    Text = m.Name,
+                    Value = m.Name
+                })
+                .ToList();
+
+            _logger.LogInformation("结束获取驱动{deviceId}方法，总计{cnt}", deviceId, methodInfos?.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取驱动{deviceId}方法错误", deviceId);
         }
 
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            _logger.LogInformation("Dispose");
-        }
+        return driverFilesComboSelect;
+    }
 
-        public static Task StartAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        _logger.LogInformation("Dispose");
+    }
 
-        public static Task StopAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
+    public static Task StartAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public static Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 }

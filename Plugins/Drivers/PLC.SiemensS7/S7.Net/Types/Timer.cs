@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace S7.Net.Types
+﻿namespace S7.Net.Types
 {
     /// <summary>
     /// Converts the Timer data type to C# data type

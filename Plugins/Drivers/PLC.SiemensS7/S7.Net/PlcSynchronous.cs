@@ -1,7 +1,4 @@
 ﻿using S7.Net.Types;
-using System;
-using System.IO;
-using System.Collections.Generic;
 using S7.Net.Protocol;
 using S7.Net.Helper;
 

@@ -1,5 +1,5 @@
 // WTM默认页面 Wtm buidin page
-using System;
+
 using WalkingTec.Mvvm.Core;
 
 

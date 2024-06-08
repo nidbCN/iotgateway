@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using OPCAutomation;
+﻿using OPCAutomation;
 
 namespace Automation.OPCClient
 {

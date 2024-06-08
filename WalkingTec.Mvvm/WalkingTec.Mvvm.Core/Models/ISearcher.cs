@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using WalkingTec.Mvvm.Core;
 
 namespace WalkingTec.Mvvm.Core
 {

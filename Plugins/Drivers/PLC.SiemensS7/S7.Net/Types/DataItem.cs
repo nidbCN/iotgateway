@@ -1,5 +1,4 @@
 ﻿using S7.Net.Protocol.S7;
-using System;
 
 namespace S7.Net.Types
 {

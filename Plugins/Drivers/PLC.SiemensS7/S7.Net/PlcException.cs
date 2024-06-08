@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace S7.Net
+﻿namespace S7.Net
 {
     #if NET_FULL
     [Serializable]

@@ -3,8 +3,6 @@ using PluginInterface;
 using IoTClient.Clients.PLC;
 using Microsoft.Extensions.Logging;
 using DataTypeEnum = IoTClient.Enums.DataTypeEnum;
-using System.Text;
-using System.Linq;
 
 namespace PLC.MelsecMc
 {

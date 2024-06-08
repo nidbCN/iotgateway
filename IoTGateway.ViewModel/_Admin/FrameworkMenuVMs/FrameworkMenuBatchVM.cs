@@ -2,9 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using WalkingTec.Mvvm.Core;
-using WalkingTec.Mvvm.Core.Extensions;
 
 namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkMenuVMs
 {

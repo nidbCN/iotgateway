@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using WalkingTec.Mvvm.Core;
-using WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkGroupVMs;
 using WalkingTec.Mvvm.Core.Extensions;
 using System.Threading.Tasks;
 

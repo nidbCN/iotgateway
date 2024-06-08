@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace S7.Net.Types
+﻿namespace S7.Net.Types
 {
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
     public sealed class S7StringAttribute : Attribute

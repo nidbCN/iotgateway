@@ -1,4 +1,3 @@
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Core.Json;

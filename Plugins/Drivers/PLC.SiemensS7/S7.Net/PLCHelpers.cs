@@ -1,9 +1,6 @@
 ﻿using S7.Net.Helper;
 using S7.Net.Protocol.S7;
 using S7.Net.Types;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DateTime = S7.Net.Types.DateTime;
 using Timer = S7.Net.Types.Timer;
 

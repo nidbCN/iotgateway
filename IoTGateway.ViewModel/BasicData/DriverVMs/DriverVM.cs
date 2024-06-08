@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
-using WalkingTec.Mvvm.Core;
-using WalkingTec.Mvvm.Core.Extensions;
+﻿using WalkingTec.Mvvm.Core;
 using IoTGateway.Model;
 using Plugin;
 
@@ -23,8 +17,11 @@ namespace IoTGateway.ViewModel.BasicData.DriverVMs
 
         public override void DoAdd()
         {
-            var DriverService = Wtm.ServiceProvider.GetService(typeof(DriverService)) as DriverService;
-            Entity.AssembleName = DriverService.GetAssembleNameByFileName(Entity.FileName);
+            var driverService = Wtm.ServiceProvider
+                .GetService(typeof(DriverService)) as DriverService;
+            Entity.AssembleName = driverService
+                .GetAssembleNameByFileName(Entity.FileName);
+
             if (string.IsNullOrEmpty(Entity.AssembleName))
             {
                 MSD.AddModelError("", "程序集获取失败");

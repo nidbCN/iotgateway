@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using WalkingTec.Mvvm.Core;
 
 namespace WalkingTec.Mvvm.Mvc

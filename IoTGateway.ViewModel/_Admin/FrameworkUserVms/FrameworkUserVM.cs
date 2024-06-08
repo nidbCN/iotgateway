@@ -36,16 +36,24 @@ namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkUserVms
 
         protected override void InitVM()
         {
-            AllRoles = DC.Set<FrameworkRole>().GetSelectListItems(Wtm, y => y.RoleName, y => y.RoleCode);
-            AllGroups = DC.Set<FrameworkGroup>().GetSelectListItems(Wtm, y => y.GroupName, y => y.GroupCode);
-            SelectedRolesCodes = DC.Set<FrameworkUserRole>().Where(x => x.UserCode == Entity.ITCode).Select(x => x.RoleCode).ToList();
-            SelectedGroupCodes = DC.Set<FrameworkUserGroup>().Where(x => x.UserCode == Entity.ITCode).Select(x => x.GroupCode).ToList();
+            AllRoles = DC.Set<FrameworkRole>()
+                .GetSelectListItems(Wtm, y => y.RoleName, y => y.RoleCode);
+            AllGroups = DC.Set<FrameworkGroup>()
+                .GetSelectListItems(Wtm, y => y.GroupName, y => y.GroupCode);
+            SelectedRolesCodes = DC.Set<FrameworkUserRole>()
+                .Where(x => x.UserCode == Entity.ITCode)
+                .Select(x => x.RoleCode).ToList();
+            SelectedGroupCodes = DC.Set<FrameworkUserGroup>()
+                .Where(x => x.UserCode == Entity.ITCode)
+                .Select(x => x.GroupCode).ToList();
         }
 
         protected override void ReInitVM()
         {
-            AllRoles = DC.Set<FrameworkRole>().GetSelectListItems(Wtm, y => y.RoleName, y => y.RoleCode);
-            AllGroups = DC.Set<FrameworkGroup>().GetSelectListItems(Wtm, y => y.GroupName, y => y.GroupCode);
+            AllRoles = DC.Set<FrameworkRole>()
+                .GetSelectListItems(Wtm, y => y.RoleName, y => y.RoleCode);
+            AllGroups = DC.Set<FrameworkGroup>()
+                .GetSelectListItems(Wtm, y => y.GroupName, y => y.GroupCode);
         }
 
         public override async Task DoAddAsync()

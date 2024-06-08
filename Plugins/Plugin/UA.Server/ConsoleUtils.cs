@@ -27,18 +27,9 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Mono.Options;
-using Opc.Ua;
 using Opc.Ua.Configuration;
-using static Opc.Ua.Utils;
 
 namespace Quickstarts
 {

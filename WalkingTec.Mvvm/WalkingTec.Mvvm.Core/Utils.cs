@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Distributed;
 using NPOI.HSSF.Util;
 using System;
 using System.Collections.Generic;
@@ -11,8 +10,6 @@ using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using WalkingTec.Mvvm.Core.Extensions;
-using WalkingTec.Mvvm.Core.Support;
 using WalkingTec.Mvvm.Core.Support.Json;
 
 namespace WalkingTec.Mvvm.Core

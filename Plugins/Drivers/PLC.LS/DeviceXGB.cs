@@ -1,10 +1,8 @@
 ﻿using HslCommunication;
 using HslCommunication.Profinet.LSIS;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using PluginInterface;
 using System.IO.Ports;
-using System.Net;
 
 namespace PLC.LSIS
 {

@@ -1,7 +1,5 @@
 // WTM默认页面 Wtm buidin page
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WalkingTec.Mvvm.Core;

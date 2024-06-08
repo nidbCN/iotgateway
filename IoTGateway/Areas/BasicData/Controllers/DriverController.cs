@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Mvc;
 using WalkingTec.Mvvm.Core.Extensions;
@@ -25,15 +24,12 @@ namespace IoTGateway.Controllers
         public string Search(DriverSearcher searcher)
         {
             var vm = Wtm.CreateVM<DriverListVM>(passInit: true);
-            if (ModelState.IsValid)
-            {
-                vm.Searcher = searcher;
-                return vm.GetJson(false);
-            }
-            else
-            {
-                return vm.GetError();
-            }
+
+            if (!ModelState.IsValid) return vm.GetError();
+            
+            vm.Searcher = searcher;
+            return vm.GetJson(false);
+
         }
 
         #endregion
@@ -54,18 +50,16 @@ namespace IoTGateway.Controllers
             {
                 return PartialView(vm);
             }
+
+            vm.DoAdd();
+            if (!ModelState.IsValid)
+            {
+                vm.DoReInit();
+                return PartialView(vm);
+            }
             else
             {
-                vm.DoAdd();
-                if (!ModelState.IsValid)
-                {
-                    vm.DoReInit();
-                    return PartialView(vm);
-                }
-                else
-                {
-                    return FFResult().CloseDialog().RefreshGrid();
-                }
+                return FFResult().CloseDialog().RefreshGrid();
             }
         }
         #endregion

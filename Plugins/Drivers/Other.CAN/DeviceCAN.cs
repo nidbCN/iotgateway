@@ -40,7 +40,7 @@ public class DeviceCAN : IDriver
     {
         try
         {
-            _socket = new RawCanSocket();
+            _socket = new();
             var canInterface = CanNetworkInterface
                 .GetAllInterfaces(true)
                 .First(i => i.Name == Interface);
@@ -70,7 +70,7 @@ public class DeviceCAN : IDriver
     public DriverReturnValueModel Read(DriverAddressIoArgModel ioArg)
     {
         if (!IsConnected)
-            return new DriverReturnValueModel
+            return new()
             {
                 StatusType = VaribaleStatusTypeEnum.Bad
             };
@@ -82,30 +82,17 @@ public class DeviceCAN : IDriver
 
         _socket!.Read(out CanFrame frame);
 
-        switch (ioArg.ValueType)
+        ret.Value = ioArg.ValueType switch
         {
-            case DataTypeEnum.Bool:
-                ret.Value = frame.Data[0] == 1;
-                break;
-            case DataTypeEnum.Byte:
-                ret.Value = frame.Data[0];
-                break;
-            case DataTypeEnum.Int16:
-                ret.Value = BitConverter.ToInt16(frame.Data);
-                break;
-            case DataTypeEnum.Int32:
-                ret.Value = BitConverter.ToInt32(frame.Data);
-                break;
-            case DataTypeEnum.Int64:
-                ret.Value = BitConverter.ToInt64(frame.Data);
-                break;
-            case DataTypeEnum.AsciiString:
-                ret.Value = Encoding.ASCII.GetString(frame.Data);
-                break;
-            case DataTypeEnum.Any:
-                ret.Value = frame.Data;
-                break;
-        }
+            DataTypeEnum.Bool => frame.Data[0] == 1,
+            DataTypeEnum.Byte => frame.Data[0],
+            DataTypeEnum.Int16 => BitConverter.ToInt16(frame.Data),
+            DataTypeEnum.Int32 => BitConverter.ToInt32(frame.Data),
+            DataTypeEnum.Int64 => BitConverter.ToInt64(frame.Data),
+            DataTypeEnum.AsciiString => Encoding.ASCII.GetString(frame.Data),
+            DataTypeEnum.Any => frame.Data,
+            _ => ret.Value
+        };
 
         return ret;
     }
@@ -126,7 +113,7 @@ public class DeviceCAN : IDriver
                 case DataTypeEnum.UByte:
                     break;
                 case DataTypeEnum.Byte:
-                    data = new byte[] { (byte)ioArg.Value };
+                    data = new[] { (byte)ioArg.Value };
                     break;
                 case DataTypeEnum.Uint16:
                     data = BitConverter.GetBytes((ushort)ioArg.Value);
@@ -182,8 +169,6 @@ public class DeviceCAN : IDriver
                     break;
                 case DataTypeEnum.Gb2312String:
                     break;
-                default:
-                    break;
             }
 
             if (data is null)
@@ -194,7 +179,7 @@ public class DeviceCAN : IDriver
             {
                 await Task.Run(() =>
                 {
-                    _socket?.Write(new CanFrame()
+                    _socket?.Write(new CanFrame
                     {
                         Data = data
                     });

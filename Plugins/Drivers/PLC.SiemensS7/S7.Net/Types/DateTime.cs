@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace S7.Net.Types
+﻿namespace S7.Net.Types
 {
     /// <summary>
     /// Contains the methods to convert between <see cref="T:System.DateTime"/> and S7 representation of datetime values.

@@ -27,10 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
 using System.Xml;
-using System.Threading;
 using System.Numerics;
 using Opc.Ua;
 using Opc.Ua.Server;
@@ -38,7 +35,6 @@ using Range = Opc.Ua.Range;
 using IoTGateway.DataAccess;
 using Plugin;
 using IoTGateway.Model;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 namespace Quickstarts.ReferenceServer

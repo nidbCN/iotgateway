@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Razor.TagHelpers;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using WalkingTec.Mvvm.Core.Extensions;
 

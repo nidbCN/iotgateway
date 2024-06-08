@@ -13,7 +13,6 @@ using NPOI.XSSF.UserModel;
 using NPOI.SS.UserModel;
 using PluginInterface;
 using IoTGateway.ViewModel.BasicData.DeviceVMs;
-using Microsoft.Extensions.Logging;
 
 namespace IoTGateway.ViewModel.BasicData
 {

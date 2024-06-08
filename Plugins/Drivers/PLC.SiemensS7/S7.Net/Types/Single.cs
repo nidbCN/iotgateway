@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace S7.Net.Types
+﻿namespace S7.Net.Types
 {
     /// <summary>
     /// Contains the conversion methods to convert Real from S7 plc to C# float.

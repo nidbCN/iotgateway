@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace S7.Net.Types
+﻿namespace S7.Net.Types
 {
     /// <summary>
     /// Contains the methods to convert from bytes to byte arrays

@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using WalkingTec.Mvvm.Core;
 
 namespace WalkingTec.Mvvm.TagHelpers.LayUI

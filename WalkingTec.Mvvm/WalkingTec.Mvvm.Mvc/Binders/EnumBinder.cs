@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace WalkingTec.Mvvm.Mvc.Binders

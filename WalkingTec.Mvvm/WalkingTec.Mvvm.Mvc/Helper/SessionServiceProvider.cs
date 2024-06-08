@@ -1,7 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using WalkingTec.Mvvm.Core;
 
 namespace WalkingTec.Mvvm.Mvc

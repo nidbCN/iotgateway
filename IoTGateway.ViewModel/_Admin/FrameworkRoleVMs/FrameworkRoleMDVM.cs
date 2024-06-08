@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkMenuVMs;
-using WalkingTec.Mvvm.Core.Extensions;
 
 namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkRoleVMs
 {

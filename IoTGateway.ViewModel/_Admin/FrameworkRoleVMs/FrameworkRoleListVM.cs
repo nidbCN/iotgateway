@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Core.Extensions;
+// ReSharper disable InconsistentNaming
 
 namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.FrameworkRoleVMs
 {

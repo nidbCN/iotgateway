@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using WalkingTec.Mvvm.Core.Models;
 
 namespace WalkingTec.Mvvm.Core.Support.FileHandlers

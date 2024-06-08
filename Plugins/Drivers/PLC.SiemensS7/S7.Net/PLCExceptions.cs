@@ -1,5 +1,4 @@
-﻿using System;
-#if NET_FULL
+﻿#if NET_FULL
 using System.Runtime.Serialization;    
 #endif
 

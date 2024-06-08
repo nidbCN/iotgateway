@@ -27,12 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Opc.Ua;
 using Opc.Ua.Configuration;
 using Opc.Ua.Server;

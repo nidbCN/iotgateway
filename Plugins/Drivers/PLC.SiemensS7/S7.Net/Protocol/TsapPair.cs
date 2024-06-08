@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace S7.Net.Protocol
+﻿namespace S7.Net.Protocol
 {
     /// <summary>
     /// Implements a pair of TSAP addresses used to connect to a PLC.

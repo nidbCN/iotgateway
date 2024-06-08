@@ -1,11 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System;
+﻿using Microsoft.AspNetCore.Mvc;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Mvc;
 using WalkingTec.Mvvm.Core.Extensions;
-using IoTGateway.ViewModel.BasicData.DeviceVMs;
-using MQTTnet.Server;
 using IoTGateway.ViewModel.MqttClient.MqttServerVMs;
 
 namespace IoTGateway.Controllers

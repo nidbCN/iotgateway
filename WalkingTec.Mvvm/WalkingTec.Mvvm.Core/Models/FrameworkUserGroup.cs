@@ -1,8 +1,5 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using WalkingTec.Mvvm.Core.Attributes;
 
 namespace WalkingTec.Mvvm.Core
 {

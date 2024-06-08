@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WalkingTec.Mvvm.Core;
@@ -7,7 +6,6 @@ using WalkingTec.Mvvm.Core.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using IoTGateway.Model;
-using PluginInterface;
 using Plugin;
 using Newtonsoft.Json;
 
@@ -19,7 +17,7 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
         public List<LayuiTreeItem> DevicesTree { get; set; }
         protected override List<GridAction> InitGridAction()
         {
-            return new List<GridAction>
+            return new()
             {
                 this.MakeAction("DeviceVariable","SetValue",Localizer["WriteValue"],Localizer["WriteValue"], GridActionParameterTypesEnum.MultiIds,"BasicData",600).SetIconCls("_wtmicon _wtmicon-xiayibu").SetHideOnToolBar(false).SetShowInRow(false).SetBindVisiableColName("setValue"),
                 this.MakeStandardAction("DeviceVariable", GridActionStandardTypesEnum.Create, Localizer["Sys.Create"],"BasicData", dialogWidth: 800),
@@ -35,18 +33,26 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
 
         protected override void InitListVM()
         {
-            AllDevices = DC.Set<Device>().AsNoTracking()
-                .OrderBy(x => x.Parent.Index).ThenBy(x => x.Parent.DeviceName)
-                .OrderBy(x => x.Index).ThenBy(x => x.DeviceName)
+            AllDevices = DC.Set<Device>()
+                .AsNoTracking()
+                .OrderBy(x => x.Parent.Index)
+                .ThenBy(x => x.Parent.DeviceName)
+                .OrderBy(x => x.Index)
+                .ThenBy(x => x.DeviceName)
                 .GetTreeSelectListItems(Wtm, x => x.DeviceName);
 
-            var deviceService = Wtm.ServiceProvider.GetService(typeof(DeviceService)) as DeviceService;
+            var deviceService = Wtm
+                .ServiceProvider
+                .GetService(typeof(DeviceService)) as DeviceService;
+
             Parallel.ForEach(AllDevices, device =>
             {
                 Parallel.ForEach(device.Children, item =>
                 {
-                    var deviceThread = deviceService.DeviceThreads.FirstOrDefault(x => x.Device.ID.ToString() == (string)item.Value);
-                    if (deviceThread != null)
+                    var deviceThread = deviceService.DeviceThreads
+                        .FirstOrDefault(x => x.Device.ID.ToString() == (string)item.Value);
+
+                    if (deviceThread is not null)
                         item.Icon = deviceThread.Device.AutoStart
                             ? (deviceThread.Driver.IsConnected
                                 ? "layui-icon layui-icon-link"
@@ -55,10 +61,12 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
 
                     item.Text = " " + item.Text;
                     item.Expended = true;
-                    item.Selected = item.Value.ToString() == IoTBackgroundService.VariableSelectDeviceId.ToString();
+                    item.Selected = 
+                        item.Value.ToString() == IoTBackgroundService.VariableSelectDeviceId.ToString();
 
                 });
             });
+
             DevicesTree = GetLayuiTree(AllDevices);
             base.InitListVM();
         }
@@ -108,13 +116,12 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
                 var dapThread = deviceService!.DeviceThreads.FirstOrDefault(x => x.Device.ID == item.DeviceId);
                 var variable = dapThread?.Device?.DeviceVariables?.FirstOrDefault(x => x.ID == item.ID);
 
-                if (variable != null)
-                {
-                    item.Value = variable.Value;
-                    item.CookedValue = variable.CookedValue;
-                    item.StatusType = variable.StatusType;
-                    item.Timestamp = variable.Timestamp;
-                }
+                if (variable == null) return;
+
+                item.Value = variable.Value;
+                item.CookedValue = variable.CookedValue;
+                item.StatusType = variable.StatusType;
+                item.Timestamp = variable.Timestamp;
             });
 
         }

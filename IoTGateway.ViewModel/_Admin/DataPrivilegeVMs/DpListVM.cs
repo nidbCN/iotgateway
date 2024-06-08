@@ -1,9 +1,8 @@
 // WTM默认页面 Wtm buidin page
-using System;
+
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
 using WalkingTec.Mvvm.Core;
 
 namespace WalkingTec.Mvvm.Mvc.Admin.ViewModels.DataPrivilegeVMs

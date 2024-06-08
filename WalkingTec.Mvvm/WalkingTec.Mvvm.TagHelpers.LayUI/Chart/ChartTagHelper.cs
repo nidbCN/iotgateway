@@ -1,10 +1,5 @@
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using System;
-using System.Collections.Generic;
-using System.Text;
-using WalkingTec.Mvvm.Core;
-using System.Linq;
 
 namespace WalkingTec.Mvvm.TagHelpers.LayUI.Chart
 {

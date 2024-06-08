@@ -4,11 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WalkingTec.Mvvm.Core;
-using WalkingTec.Mvvm.Core.Extensions;
 using IoTGateway.Model;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Primitives;
-using System.Runtime.Intrinsics.Arm;
 using Newtonsoft.Json;
 
 namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs

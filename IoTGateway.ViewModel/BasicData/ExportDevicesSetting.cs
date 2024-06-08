@@ -1,25 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using WalkingTec.Mvvm.Core;
-using WalkingTec.Mvvm.Core.Extensions;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
 using IoTGateway.Model;
-using PluginInterface;
-using Plugin;
-using Newtonsoft.Json;
-using IoTGateway.DataAccess.Migrations;
-using NPOI.HSSF.Util;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
-using IoTGateway.ViewModel.BasicData.DeviceVariableVMs;
-using IoTGateway.ViewModel.BasicData.DeviceConfigVMs;
 using System.IO;
-using System.Reflection;
-using IoTGateway.ViewModel.Config.SystemConfigVMs;
-using IoTGateway.ViewModel.BasicData.DeviceVMs;
 
 namespace IoTGateway.ViewModel.BasicData
 {

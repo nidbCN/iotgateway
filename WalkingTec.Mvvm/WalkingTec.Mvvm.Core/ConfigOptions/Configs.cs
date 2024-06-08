@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using WalkingTec.Mvvm.Core.ConfigOptions;
 
 namespace WalkingTec.Mvvm.Core

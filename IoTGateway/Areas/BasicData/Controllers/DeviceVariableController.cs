@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Mvc;
 using WalkingTec.Mvvm.Core.Extensions;
 using IoTGateway.ViewModel.BasicData.DeviceVariableVMs;
-using Opc.Ua.Security.Certificates;
 
 namespace IoTGateway.Controllers
 {
@@ -215,6 +213,7 @@ namespace IoTGateway.Controllers
         {
             return vm.GetExportData();
         }
+
         #region 下发写入
         [ActionDescription("下发页面")]
         [HttpPost]
@@ -241,11 +240,9 @@ namespace IoTGateway.Controllers
             {
                 return PartialView(vm);
             }
-            else
-            {
-                vm.Set();
-                return FFResult().CloseDialog().RefreshGrid().Alert($"{vm.设置结果}");
-            }
+
+            vm.Set();
+            return FFResult().CloseDialog().RefreshGrid().Alert($"{vm.设置结果}");
         }
         #endregion
     }

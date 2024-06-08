@@ -1,7 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DevicesSimulator.Models;
+using DevicesSimulator;
+using Microsoft.Extensions.Logging;
 using PluginInterface;
 using System.IO.Ports;
 using System.Text;
+using System.Text.Json;
 
 namespace Other.UART;
 
@@ -10,6 +13,7 @@ namespace Other.UART;
 public class DeviceSerialPort : IDriver
 {
     #region 配置参数
+
     [ConfigParameter("设备Id")]
     public string DeviceId { get; set; }
 
@@ -40,7 +44,7 @@ public class DeviceSerialPort : IDriver
 
     private readonly string _device;
 
-    private byte[]? _lastRecv;
+    private byte[]? _lastRec;
 
     public DeviceSerialPort(string device, ILogger logger)
     {
@@ -50,8 +54,7 @@ public class DeviceSerialPort : IDriver
 
     private SerialPort? _serialPort;
 
-    public bool IsConnected => _serialPort != null && _serialPort.IsOpen;
-
+    public bool IsConnected => _serialPort is { IsOpen: true };
 
     public bool Close()
     {
@@ -63,7 +66,7 @@ public class DeviceSerialPort : IDriver
     {
         try
         {
-            _serialPort = new SerialPort(PortName, BaudRate, Parity, DataBits);
+            _serialPort = new(PortName, BaudRate, Parity, DataBits);
             _serialPort.Open();
         }
         catch (Exception e)
@@ -75,6 +78,7 @@ public class DeviceSerialPort : IDriver
 
         return true;
     }
+
     public void Dispose()
     {
         GC.SuppressFinalize(this);
@@ -96,13 +100,13 @@ public class DeviceSerialPort : IDriver
                 if (len != 0)
                 {
                     var buffer = new byte[len];
-                    var _ = _serialPort.Read(buffer, 0, len);
-                    _lastRecv = buffer;
+                    _ = _serialPort.Read(buffer, 0, len);
+                    _lastRec = buffer;
                 }
 
-                if (_lastRecv is { })
+                if (_lastRec is not null)
                 {
-                    ret.Value = ConvertToValue(ioArg.ValueType, _lastRecv);
+                    ret.Value = ConvertToValue(ioArg.ValueType, _lastRec);
                 }
             }
             catch (Exception e)
@@ -144,43 +148,38 @@ public class DeviceSerialPort : IDriver
     [Method("写串口设备数据", description: "写入数据")]
     public async Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg)
     {
-        var resp = new RpcResponse() { IsSuccess = true };
-        if (IsConnected)
+        var resp = new RpcResponse() { IsSuccess = false };
+
+        if (!IsConnected) return resp;
+
+        if (ioArg.ValueType != DataTypeEnum.AsciiString) return resp;
+
+        var obj = JsonSerializer
+            .Deserialize<InertialNavigationData>((string)ioArg.Value);
+
+        var bytes = ObjectBytesConverter.ToBytes(obj);
+
+        var checkSum = (byte)bytes.Sum(b => b);
+
+        var result = new byte[bytes.Length + 3];
+
+        var header = BitConverter.GetBytes(obj.Header);
+        (result[0], result[1]) = (header[0], header[1]);
+
+        Array.Copy(bytes, 0, result, 2, bytes.Length);
+        result[bytes.Length + 2] = checkSum;
+
+        try
         {
-            try
-            {
-                using var stream = _serialPort!.BaseStream;
-
-                var data = ConvertToByte(ioArg.ValueType, ioArg.Value);
-
-                await stream.WriteAsync(data);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Device [{dev}] send failed, {m}", _device, e.Message);
-                resp.IsSuccess = false;
-            }
+            await using var stream = _serialPort!.BaseStream;
+            await stream.WriteAsync(result);
+            resp.IsSuccess = true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Device [{dev}] send failed, {m}", _device, e.Message);
         }
 
         return resp;
     }
-
-    private static byte[] ConvertToByte(DataTypeEnum type, object data)
-        => type switch
-        {
-            DataTypeEnum.AsciiString => Encoding.ASCII.GetBytes((string)data),
-            DataTypeEnum.Utf8String => Encoding.UTF8.GetBytes((string)data),
-            DataTypeEnum.Byte => BitConverter.GetBytes((sbyte)data),
-            DataTypeEnum.UByte => BitConverter.GetBytes((byte)data),
-            DataTypeEnum.Bool => BitConverter.GetBytes((bool)data),
-            DataTypeEnum.Uint16 => BitConverter.GetBytes((ushort)data),
-            DataTypeEnum.Int16 => BitConverter.GetBytes((short)data),
-            DataTypeEnum.Uint32 => BitConverter.GetBytes((uint)data),
-            DataTypeEnum.Int32 => BitConverter.GetBytes((int)data),
-            DataTypeEnum.Uint64 => BitConverter.GetBytes((ulong)data),
-            DataTypeEnum.Int64 => BitConverter.GetBytes((long)data),
-            DataTypeEnum.Float => BitConverter.GetBytes((float)data),
-            DataTypeEnum.Double => BitConverter.GetBytes((double)data),
-            _ => Array.Empty<byte>(),
-        };
 }

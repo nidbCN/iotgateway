@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace WalkingTec.Mvvm.Core
 {
     public class JwtOption

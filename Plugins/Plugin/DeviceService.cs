@@ -74,14 +74,14 @@ public class DeviceService : IDisposable
     {
         try
         {
-            _logger.LogInformation("UpdateDevice Start:{device}", device.DeviceName);
+            _logger.LogInformation("开始更新设备{device}", device.DeviceName);
             RemoveDeviceThread(device);
             CreateDeviceThread(device);
-            _logger.LogInformation("UpdateDevice End:{device}", device.DeviceName);
+            _logger.LogInformation("完成更新设备{device}", device.DeviceName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateDevice Error:{device}", device.DeviceName);
+            _logger.LogError(ex, "更新设备{device}失败", device.DeviceName);
         }
     }
 
@@ -104,6 +104,7 @@ public class DeviceService : IDisposable
         try
         {
             _logger.LogInformation("开始创建设备 {device} 线程", device.DeviceName);
+
             using (var dataContext = new DataContext(_connectSetting, _dbType))
             {
                 var systemManage = dataContext

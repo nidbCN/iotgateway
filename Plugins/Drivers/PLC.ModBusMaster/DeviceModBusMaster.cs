@@ -76,9 +76,12 @@ namespace PLC.ModBusMaster
         /// </summary>
         public bool IsConnected => MasterType switch
         {
-            MasterType.Tcp or MasterType.RtuOnTcp or MasterType.AsciiOnTcp => _tcpClient != null && _master != null && _tcpClient.Connected,
-            MasterType.Udp or MasterType.RtuOnUdp or MasterType.AsciiOnUdp => _udpClient != null && _master != null && _udpClient.Client.Connected,
-            MasterType.Rtu or MasterType.Ascii => _serialPort != null && _master != null && _serialPort.IsOpen,
+            MasterType.Tcp or MasterType.RtuOnTcp or MasterType.AsciiOnTcp 
+                => _tcpClient != null && _master != null && _tcpClient.Connected,
+            MasterType.Udp or MasterType.RtuOnUdp or MasterType.AsciiOnUdp 
+                => _udpClient != null && _master != null && _udpClient.Client.Connected,
+            MasterType.Rtu or MasterType.Ascii 
+                => _serialPort != null && _master != null && _serialPort.IsOpen,
             _ => false,
         };
 

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace S7.Net.Types
+﻿namespace S7.Net.Types
 {
     class ByteArray
     {

@@ -3,7 +3,6 @@ using System.Text;
 using S7.Net.Types;
 using PluginInterface;
 using Microsoft.Extensions.Logging;
-using System.IO;
 
 namespace PLC.SiemensS7
 {

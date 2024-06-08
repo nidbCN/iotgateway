@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using WalkingTec.Mvvm.Core;
-using WalkingTec.Mvvm.Core.Extensions;
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-using IoTGateway.Model;
-using Microsoft.Extensions.Primitives;
 using MQTTnet.Server;
 using MQTTnet.Formatter;
 

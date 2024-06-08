@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Automation.OPCClient
+﻿namespace Automation.OPCClient
 {
     public class OPCChangeModel
     {

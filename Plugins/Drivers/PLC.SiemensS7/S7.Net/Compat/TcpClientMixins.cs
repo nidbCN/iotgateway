@@ -1,6 +1,4 @@
-﻿using System.Net.Sockets;
-
-namespace S7.Net
+﻿namespace S7.Net
 {
     public static class TcpClientMixins
     {

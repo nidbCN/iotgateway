@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using Microsoft.EntityFrameworkCore;
-using WalkingTec.Mvvm.Core.Extensions;
 using WalkingTec.Mvvm.Core.Models;
 
 namespace WalkingTec.Mvvm.Core.Support.FileHandlers

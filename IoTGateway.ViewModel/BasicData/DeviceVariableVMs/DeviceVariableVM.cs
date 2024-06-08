@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
-using IoTGateway.DataAccess.Migrations;
 using WalkingTec.Mvvm.Core;
 using WalkingTec.Mvvm.Core.Extensions;
 using IoTGateway.Model;
@@ -26,16 +22,20 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
 
         protected override void InitVM()
         {
-            if (this.ControllerName.ToLower().Contains("add"))
+            if (ControllerName.ToLower().Contains("add"))
             {
-                this.Entity.IsUpload = true;
-                this.Entity.ProtectType =  ProtectTypeEnum.ReadWrite;
+                Entity.IsUpload = true;
+                Entity.ProtectType =  ProtectTypeEnum.ReadWrite;
             }
+            
             AllDevices = DC.Set<Device>().AsNoTracking().Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
                 .OrderBy(x => x.Parent.Index).ThenBy(x => x.Parent.DeviceName)
                 .OrderBy(x => x.Index).ThenBy(x => x.DeviceName)
                 .GetSelectListItems(Wtm, y => y.DeviceName);
-            var deviceService = Wtm.ServiceProvider.GetService(typeof(DeviceService)) as DeviceService;
+            
+            var deviceService = Wtm.ServiceProvider
+                .GetService(typeof(DeviceService)) as DeviceService;
+            
             if (Entity.DeviceId != null)
             {
                 AllMethods = deviceService.GetDriverMethods(Entity.DeviceId);
@@ -46,7 +46,7 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
                 AllMethods = deviceService.GetDriverMethods(Entity.DeviceId);
             }
 
-            if (AllMethods?.Count() > 0)
+            if (AllMethods?.Count > 0)
                 AllMethods[0].Selected = true;
         }
 
@@ -72,13 +72,15 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
             UpdateVaribale();
         }
 
-
         private void UpdateVaribale()
         {
-            var deviceService = Wtm.ServiceProvider.GetService(typeof(DeviceService)) as DeviceService;
-            UpdateDevices.UpdateVaribale(DC, deviceService, FC);
+            var deviceService = Wtm.ServiceProvider
+                .GetService(typeof(DeviceService)) as DeviceService;
+            UpdateDevices
+                .UpdateVaribale(DC, deviceService, FC);
 
         }
+
         public override DuplicatedInfo<DeviceVariable> SetDuplicatedCheck()
         {
             var rv = CreateFieldsInfo(SimpleField(x => x.DeviceId), SimpleField(x => x.Name), SimpleField(x => x.Alias));

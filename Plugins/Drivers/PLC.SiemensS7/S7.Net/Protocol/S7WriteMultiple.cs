@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using S7.Net.Types;
+﻿using S7.Net.Types;
 
 namespace S7.Net.Protocol
 {

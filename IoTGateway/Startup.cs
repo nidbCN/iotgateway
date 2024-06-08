@@ -140,7 +140,7 @@ namespace IoTGateway
         /// <returns>data privileges list</returns>
         public List<IDataPrivilege> DataPrivilegeSettings()
         {
-            List<IDataPrivilege> pris = new List<IDataPrivilege>();
+            var pris = new List<IDataPrivilege>();
             //Add data privilege to specific type
             //指定哪些模型需要数据权限
             return pris;

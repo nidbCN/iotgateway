@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Aliyun.OSS;
 using WalkingTec.Mvvm.Core.ConfigOptions;
 using WalkingTec.Mvvm.Core.Extensions;

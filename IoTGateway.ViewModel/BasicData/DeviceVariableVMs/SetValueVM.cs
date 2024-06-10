@@ -20,7 +20,7 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
         {
             try
             {
-                StringValues ids , values;
+                StringValues ids, values;
                 if (FC.ContainsKey("setValue.ID[]"))
                 {
                     ids = (StringValues)FC["setValue.ID[]"];
@@ -35,7 +35,7 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
                 Dictionary<string, string> kv = new(0);
                 for (int i = 0; i < ids.Count; i++)
                 {
-                    kv[ids[i]]=values[i];
+                    kv[ids[i]] = values[i];
                 }
 
 
@@ -49,43 +49,38 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
                 if (setValues != null)
                     foreach (var deviceVariables in setValues.GroupBy(x => x.DeviceId))
                     {
-                        if (deviceService != null)
+                        var dapThread =
+                            deviceService?.DeviceThreads.FirstOrDefault(x =>
+                                x.Device.ID == deviceVariables.Key);
+
+                        if (dapThread == null) continue;
+
+                        var deviceName = dapThread.Device.DeviceName;
+                        foreach (var variable in deviceVariables)
                         {
-                            var dapThread =
-                                deviceService.DeviceThreads.FirstOrDefault(x =>
-                                    x.Device.ID == deviceVariables.Key);
+                            var currentVariable = dapThread!.Device.DeviceVariables.FirstOrDefault(x => x.ID == variable.ID);
 
-                            if (dapThread != null)
-                            {
-                                string deviceName = dapThread.Device.DeviceName;
-                                foreach (var variable in deviceVariables)
-                                {
-                                    var currentVariable = dapThread!.Device.DeviceVariables.FirstOrDefault(x => x.ID == variable.ID);
-                                    
-                                    if (currentVariable!=null)
-                                    {
-                                        variable.DeviceName = deviceName + (!string.IsNullOrEmpty(variable.Alias)
-                                            ? $"->{variable.Alias}"
-                                            : "");
-                                        variable.RawValue = currentVariable.Value?.ToString();
-                                        variable.Value = currentVariable.CookedValue?.ToString();
-                                        variable.Status = currentVariable.StatusType.ToString();
-                                        variable.SetRawValue = kv[variable.ID.ToString()];
-                                    }
-                                }
+                            if (currentVariable == null) continue;
 
-                                PluginInterface.RpcRequest request = new PluginInterface.RpcRequest()
-                                {
-                                    RequestId = Guid.NewGuid().ToString(),
-                                    DeviceName = deviceName,
-                                    Method = "write",
-                                    Params = deviceVariables.ToDictionary(x => x.Name, x => x.SetRawValue)
-                                };
-                                dapThread.MyMqttClient_OnExcRpc(this, request);
-                            }
-                            
+                            variable.DeviceName = deviceName + (!string.IsNullOrEmpty(variable.Alias)
+                                ? $"->{variable.Alias}"
+                                : "");
+                            variable.RawValue = currentVariable.Value?.ToString();
+                            variable.Value = currentVariable.CookedValue?.ToString();
+                            variable.Status = currentVariable.StatusType.ToString();
+                            variable.SetRawValue = kv[variable.ID.ToString()];
                         }
+
+                        var request = new PluginInterface.RpcRequest
+                        {
+                            RequestId = Guid.NewGuid().ToString(),
+                            DeviceName = deviceName,
+                            Method = "write",
+                            Params = deviceVariables.ToDictionary(x => x.Name, x => x.SetRawValue)
+                        };
+                        dapThread.MyMqttClient_OnExcRpc(this, request);
                     }
+
                 设置结果 = "设置成功";
             }
             catch (Exception ex)
@@ -114,28 +109,24 @@ namespace IoTGateway.ViewModel.BasicData.DeviceVariableVMs
             if (setValues != null)
                 foreach (var deviceVariables in setValues.GroupBy(x => x.DeviceId))
                 {
-                    if (deviceService != null)
-                    {
-                        var dapThread =
-                            deviceService.DeviceThreads.FirstOrDefault(x =>
-                                x.Device.ID == deviceVariables.Key);
+                    var dapThread =
+                        deviceService?.DeviceThreads.FirstOrDefault(x =>
+                            x.Device.ID == deviceVariables.Key);
 
-                        if (dapThread != null)
+                    if (dapThread != null)
+                    {
+                        string deviceName = dapThread.Device.DeviceName;
+                        foreach (var variable in deviceVariables)
                         {
-                            string deviceName = dapThread.Device.DeviceName;
-                            foreach (var variable in deviceVariables)
+                            var currentVariable = dapThread!.Device.DeviceVariables.FirstOrDefault(x => x.ID == variable.ID);
+                            if (currentVariable != null)
                             {
-                                var currentVariable = dapThread!.Device.DeviceVariables.FirstOrDefault(x => x.ID == variable.ID);
-                                if (currentVariable != null)
-                                {
-                                    variable.DeviceName = deviceName;
-                                    variable.RawValue = currentVariable.Value?.ToString();
-                                    variable.Value = currentVariable.CookedValue?.ToString();
-                                    variable.Status = currentVariable.StatusType.ToString();
-                                }
+                                variable.DeviceName = deviceName;
+                                variable.RawValue = currentVariable.Value?.ToString();
+                                variable.Value = currentVariable.CookedValue?.ToString();
+                                variable.Status = currentVariable.StatusType.ToString();
                             }
                         }
-
                     }
                 }
 

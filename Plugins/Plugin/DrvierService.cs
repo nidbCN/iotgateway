@@ -13,7 +13,8 @@ namespace Plugin
     public class DriverService
     {
         private readonly ILogger<DriverService> _logger;
-        readonly string _driverPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"drivers/net6.0");
+        readonly string _driverPath = Path
+            .Combine(AppDomain.CurrentDomain.BaseDirectory, @"drivers/net6.0");
         readonly string[] _driverFiles;
         public List<DriverInfo> DriverInfos = new();
 
@@ -22,13 +23,17 @@ namespace Plugin
             _logger = logger;
             try
             {
-                _logger.LogInformation("LoadDriverFiles Start");
-                _driverFiles = Directory.GetFiles(_driverPath).Where(x => Path.GetExtension(x) == ".dll").ToArray();
-                _logger.LogInformation($"LoadDriverFiles End，Count{_driverFiles.Count()}");
+                _logger.LogInformation("加载驱动文件开始");
+                _driverFiles = Directory
+                    .GetFiles(_driverPath)
+                    .Where(x => Path.GetExtension(x) == ".dll")
+                    .ToArray();
+
+                _logger.LogInformation("加载驱动文件结束，共{cnt}", _driverFiles.Count());
             }
             catch (Exception ex)
             {
-                _logger.LogError("LoadDriverFiles Error", ex);
+                _logger.LogError(ex, "加载驱动文件错误");
             }
 
             LoadAllDrivers();
@@ -36,26 +41,30 @@ namespace Plugin
 
         public List<ComboSelectListItem> GetAllDrivers()
         {
-            List<ComboSelectListItem> driverFilesComboSelect = new List<ComboSelectListItem>();
-            using var dc = new DataContext(IoTBackgroundService.connnectSetting, IoTBackgroundService.DbType);
-            var drivers = dc.Set<Driver>().AsNoTracking().ToList();
+            var driverFilesComboSelect = new List<ComboSelectListItem>();
+            using var dc =
+                new DataContext(IoTBackgroundService.connnectSetting, IoTBackgroundService.DbType);
+            var drivers = dc.Set<Driver>()
+                .AsNoTracking()
+                .ToList();
 
             foreach (var file in _driverFiles)
             {
                 var dll = Assembly.LoadFrom(file);
-                if (dll.GetTypes().Where(x => typeof(IDriver).IsAssignableFrom(x) && x.IsClass).Any())
+                if (!dll.GetTypes().Any(x => typeof(IDriver).IsAssignableFrom(x) && x.IsClass)) continue;
+
+                var fileName = Path.GetFileName(file);
+                var item = new ComboSelectListItem
                 {
-                    var fileName = Path.GetFileName(file);
-                    var item = new ComboSelectListItem
-                    {
-                        Text = fileName,
-                        Value = fileName,
-                        Disabled = false,
-                    };
-                    if (drivers.Where(x => x.FileName == Path.GetFileName(file)).Any())
-                        item.Disabled = true;
-                    driverFilesComboSelect.Add(item);
-                }
+                    Text = fileName,
+                    Value = fileName,
+                    Disabled = false,
+                };
+
+                if (drivers.Any(x => x.FileName == Path.GetFileName(file)))
+                    item.Disabled = true;
+                driverFilesComboSelect.Add(item);
+
             }
 
             return driverFilesComboSelect;
@@ -71,41 +80,60 @@ namespace Plugin
 
         public void AddConfigs(Guid? dapId, Guid? driverId)
         {
-            using var dc = new DataContext(IoTBackgroundService.connnectSetting, IoTBackgroundService.DbType);
-            var device = dc.Set<Device>().Where(x => x.ID == dapId).AsNoTracking().SingleOrDefault();
-            var driver = dc.Set<Driver>().Where(x => x.ID == driverId).AsNoTracking().SingleOrDefault();
-            var type = DriverInfos.SingleOrDefault(x => x.Type.FullName == driver?.AssembleName);
+            using var dc =
+                new DataContext(IoTBackgroundService.connnectSetting, IoTBackgroundService.DbType);
+            var device = dc
+                .Set<Device>()
+                .Where(x => x.ID == dapId)
+                .AsNoTracking()
+                .SingleOrDefault();
+            var driver = dc
+                .Set<Driver>()
+                .Where(x => x.ID == driverId)
+                .AsNoTracking()
+                .SingleOrDefault();
+            var type = DriverInfos
+                .SingleOrDefault(x => x.Type?.FullName == driver?.AssembleName);
 
-            Type[] types = { typeof(string), typeof(ILogger) };
-            object[] param = { device?.DeviceName, _logger };
+            Type[] argTypes = { typeof(string), typeof(ILogger) };
+            object[] param = { device?.DeviceName!, _logger };
 
-            ConstructorInfo? constructor = type?.Type.GetConstructor(types);
+            if (type?.Type is null)
+                return;
+
+            var constructor = type.Type.GetConstructor(argTypes);
             var iObj = constructor?.Invoke(param) as IDriver;
 
-            foreach (var property in type?.Type.GetProperties())
+            // 遍历驱动中的属性
+            foreach (var property in type.Type.GetProperties())
             {
-                var config = property.GetCustomAttribute(typeof(ConfigParameterAttribute));
-                if (config != null)
+                // 获取驱动中的配置用字段
+                var config = property
+                    .GetCustomAttribute(typeof(ConfigParameterAttribute));
+
+                if (config is null) continue;
+
+                // 实例化数据库中存储用的模型类
+                var dapConfig = new DeviceConfig
                 {
-                    var dapConfig = new DeviceConfig
-                    {
-                        ID = Guid.NewGuid(),
-                        DeviceId = dapId,
-                        DeviceConfigName = property.Name,
-                        DataSide = DataSide.AnySide,
-                        Description = ((ConfigParameterAttribute)config).Description,
-                        Value = property.GetValue(iObj)?.ToString()
-                    };
+                    ID = Guid.NewGuid(),
+                    DeviceId = dapId,
+                    DeviceConfigName = property.Name,
+                    DataSide = DataSide.AnySide,
+                    Description = ((ConfigParameterAttribute)config).Description,
+                    Value = property.GetValue(iObj)?.ToString()
+                };
 
-                    if (property.PropertyType.BaseType == typeof(Enum))
-                    {
-                        var fields = property.PropertyType.GetFields(BindingFlags.Static | BindingFlags.Public);
-                        var enumInfos = fields.ToDictionary(f => f.Name, f => (int)f.GetValue(null));
-                        dapConfig.EnumInfo = JsonSerializer.Serialize(enumInfos);
-                    }
-
-                    dc.Set<DeviceConfig>().Add(dapConfig);
+                if (property.PropertyType.BaseType == typeof(Enum))
+                {
+                    var fields = property.PropertyType
+                        .GetFields(BindingFlags.Static | BindingFlags.Public);
+                    var enumInfos = fields
+                        .ToDictionary(f => f.Name, f => (int)(f.GetValue(null) ?? 0));
+                    dapConfig.EnumInfo = JsonSerializer.Serialize(enumInfos);
                 }
+
+                dc.Set<DeviceConfig>().Add(dapConfig);
             }
 
             dc.SaveChanges();
@@ -113,44 +141,53 @@ namespace Plugin
 
         public void LoadAllDrivers()
         {
-            _logger.LogInformation("LoadAllDrivers Start");
+            _logger.LogInformation("开始加载全部驱动");
             Parallel.ForEach(_driverFiles, file =>
             {
                 try
                 {
                     var dll = Assembly.LoadFrom(file);
-                    foreach (var type in dll.GetTypes().Where(x => typeof(IDriver).IsAssignableFrom(x) && x.IsClass))
+
+                    // 筛选出 IDriver 类
+                    foreach (var type in dll.GetTypes()
+                                 .Where(x => typeof(IDriver).IsAssignableFrom(x) && x.IsClass))
                     {
-                        DriverInfo driverInfo = new DriverInfo
+                        // 创建 DriverInfo 并添加
+                        var driverInfo = new DriverInfo
                         {
                             FileName = Path.GetFileName(file),
                             Type = type
                         };
                         DriverInfos.Add(driverInfo);
-                        _logger.LogInformation($"LoadAllDrivers {driverInfo.FileName} OK");
+
+                        _logger.LogInformation("加载`{f}`的全部驱动完成", driverInfo.FileName);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"LoadAllDrivers Error {file}");
+                    _logger.LogError(ex, "加载`{f}`的全部驱动出错", file);
                 }
             });
 
-            _logger.LogInformation($"LoadAllDrivers End,Count{DriverInfos.Count}");
+            _logger.LogInformation("加载全部驱动完成，总共{cnt}", DriverInfos.Count);
         }
 
         public void LoadRegestedDeviers()
         {
             using var dc = new DataContext(IoTBackgroundService.connnectSetting, IoTBackgroundService.DbType);
 
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"drivers/net6.0");
-            var files = Directory.GetFiles(path).Where(x => Path.GetExtension(x) == ".dll").ToArray();
+            var path = Path
+                .Combine(AppDomain.CurrentDomain.BaseDirectory, @"drivers/net6.0");
+            var files = Directory
+                .GetFiles(path)
+                .Where(x => Path.GetExtension(x) == ".dll");
+
             foreach (var file in files)
             {
                 var dll = Assembly.LoadFrom(file);
                 foreach (var type in dll.GetTypes().Where(x => typeof(IDriver).IsAssignableFrom(x) && x.IsClass))
                 {
-                    DriverInfo driverInfo = new DriverInfo
+                    var driverInfo = new DriverInfo
                     {
                         FileName = Path.GetFileName(file),
                         Type = type

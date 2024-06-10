@@ -22,26 +22,28 @@ namespace IoTGateway.ViewModel.BasicData.DeviceConfigVMs
 
         protected override void InitVM()
         {
-            AllDevices = DC.Set<Device>().AsNoTracking().Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
-                .OrderBy(x => x.Parent.Index).ThenBy(x => x.Parent.DeviceName)
-                .OrderBy(x => x.Index).ThenBy(x => x.DeviceName)
+            AllDevices = DC
+                .Set<Device>()
+                .AsNoTracking()
+                .Where(x => x.DeviceTypeEnum == DeviceTypeEnum.Device)
+                .OrderBy(x => x.Parent.Index)
+                .ThenBy(x => x.Parent.DeviceName)
+                .OrderBy(x => x.Index)
+                .ThenBy(x => x.DeviceName)
                 .GetSelectListItems(Wtm, y => y.DeviceName);
             if (Entity.DeviceId != null)
             {
-                if (!string.IsNullOrEmpty(Entity.EnumInfo))
+                if (string.IsNullOrEmpty(Entity.EnumInfo)) return;
+                AllTypes = new();
+                var EnumInfos = JsonSerializer.Deserialize<Dictionary<string, int>>(Entity.EnumInfo);
+                foreach (var item in EnumInfos.Select(EnumInfo => new ComboSelectListItem
+                         {
+                             Text = EnumInfo.Key,
+                             Value = EnumInfo.Key,
+                             Selected = Entity.Value == EnumInfo.Key
+                         }))
                 {
-                    AllTypes = new List<ComboSelectListItem>();
-                    var EnumInfos = JsonSerializer.Deserialize<Dictionary<string, int>>(Entity.EnumInfo);
-                    foreach (var EnumInfo in EnumInfos)
-                    {
-                        var item = new ComboSelectListItem
-                        {
-                            Text = EnumInfo.Key,
-                            Value = EnumInfo.Key,
-                            Selected = Entity.Value == EnumInfo.Key ? true : false
-                        };
-                        AllTypes.Add(item);
-                    }
+                    AllTypes.Add(item);
                 }
             }
             else if (IoTBackgroundService.ConfigSelectDeviceId != null)
@@ -74,7 +76,8 @@ namespace IoTGateway.ViewModel.BasicData.DeviceConfigVMs
 
         private void UpdateConfig()
         {
-            var deviceService = Wtm.ServiceProvider.GetService(typeof(DeviceService)) as DeviceService;
+            var deviceService = Wtm.ServiceProvider
+                .GetService(typeof(DeviceService)) as DeviceService;
             UpdateDevices.UpdateConfig(DC, deviceService, FC);
 
         }

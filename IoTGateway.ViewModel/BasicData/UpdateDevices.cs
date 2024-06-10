@@ -26,7 +26,8 @@ namespace IoTGateway.ViewModel.BasicData
         internal static void UpdateConfig(IDataContext DC, DeviceService deviceService, Dictionary<String, Object> FC)
         {
             var devices = GetDevices(DC,deviceService, FromVM.Config,FC); 
-            deviceService.UpdateDevices(devices);
+            deviceService
+                .UpdateDevices(devices);
         }
 
         internal static void UpdateDevice(IDataContext DC, DeviceService deviceService, Dictionary<String, Object> FC)

@@ -20,39 +20,27 @@ namespace Plugin
             _appLifeTime = appLifeTime;
             _serviceProvider = serviceProvider;
 
-            var connnectSettings = new List<ConnnectSettingsModel>();
-            configRoot.Bind("Connections", connnectSettings);
-            connnectSetting = connnectSettings[0].Value;
+            var connectSettings = new List<ConnnectSettingsModel>();
+            configRoot.Bind("Connections", connectSettings);
+            connnectSetting = connectSettings[0].Value;
 
-            switch (connnectSettings[0].DbType?.Trim().ToLower())
+            DbType = connectSettings[0].DbType?.Trim().ToLower() switch
             {
-                case "oracle":
-                    DbType = DBTypeEnum.Oracle;
-                    break;
-                case "mysql":
-                    DbType = DBTypeEnum.MySql;
-                    break;
-                case "pgsql":
-                    DbType = DBTypeEnum.PgSql;
-                    break;
-                case "sqlite":
-                    DbType = DBTypeEnum.SQLite;
-                    break;
-                case "memory":
-                    DbType = DBTypeEnum.Memory;
-                    break;
-            }
+                "oracle" => DBTypeEnum.Oracle,
+                "mysql" => DBTypeEnum.MySql,
+                "pgsql" => DBTypeEnum.PgSql,
+                "sqlite" => DBTypeEnum.SQLite,
+                "memory" => DBTypeEnum.Memory,
+                _ => DbType
+            };
 
-            if (DbType == DBTypeEnum.SQLite)
+            if (DbType != DBTypeEnum.SQLite) return;
+
+            using var dc = new DataContext(connnectSetting, DbType);
+            if (dc.Database.GetPendingMigrations().Any())
             {
-                using var dc = new DataContext(connnectSetting, DbType);
-                if (dc.Database.GetPendingMigrations().Any())
-                {
-                    dc.Database.Migrate();
-                }
+                dc.Database.Migrate();
             }
-
-
         }
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {

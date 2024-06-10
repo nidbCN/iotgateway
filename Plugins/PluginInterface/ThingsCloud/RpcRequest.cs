@@ -1,15 +1,15 @@
 ﻿using Newtonsoft.Json;
 
-namespace PluginInterface.ThingsBoard
+namespace PluginInterface.ThingsCloud
 {
-    public class TCRpcRequest
+    public class RpcRequest
     {
         [JsonProperty(PropertyName = "device")]
         public string DeviceName { get; set; }
         [JsonProperty(PropertyName = "command")]
-        public TBRpcData RequestData { get; set; }
+        public RpcData RequestData { get; set; }
     }
-    public class TCRpcData
+    public class RpcData
     {
         [JsonProperty(PropertyName = "id")]
         public string RequestId { get; set; }

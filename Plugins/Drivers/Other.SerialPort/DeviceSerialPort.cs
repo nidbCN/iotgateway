@@ -44,7 +44,9 @@ public class DeviceSerialPort : IDriver
 
     private readonly string _device;
 
-    private byte[]? _lastRec;
+    private readonly CancellationTokenSource _cts = new();
+
+    private List<byte>? _lastRec;
 
     public DeviceSerialPort(string device, ILogger logger)
     {
@@ -95,19 +97,16 @@ public class DeviceSerialPort : IDriver
         {
             try
             {
-                var len = _serialPort!.BytesToRead;
+                _cts.CancelAfter(TimeSpan.FromMilliseconds(Timeout));
+                _lastRec = new();
 
-                if (len != 0)
-                {
-                    var buffer = new byte[len];
-                    _ = _serialPort.Read(buffer, 0, len);
-                    _lastRec = buffer;
-                }
+                _serialPort!.DataReceived += DataReceivedHandler;
+                Task.Delay(-1, _cts.Token).Wait();
 
-                if (_lastRec is not null)
-                {
-                    ret.Value = ConvertToValue(ioArg.ValueType, _lastRec);
-                }
+                _serialPort!.DataReceived -= DataReceivedHandler;
+
+                ret.Value = ConvertToValue(ioArg.ValueType, _lastRec.ToArray());
+                _lastRec = null;
             }
             catch (Exception e)
             {
@@ -123,6 +122,21 @@ public class DeviceSerialPort : IDriver
         }
 
         return ret;
+    }
+
+    private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs args)
+    {
+        var sp = (SerialPort)sender;
+
+        if (_cts.Token.IsCancellationRequested)
+            return; // 如果取消请求已经被触发，退出事件处理器
+
+        var len = sp.BytesToRead;
+
+        if (len == 0) return;
+        var buffer = new byte[len];
+        _ = sp.Read(buffer, 0, len);
+        _lastRec.AddRange(buffer);
     }
 
     private static object ConvertToValue(DataTypeEnum type, byte[] data)
@@ -146,40 +160,50 @@ public class DeviceSerialPort : IDriver
         };
 
     [Method("写串口设备数据", description: "写入数据")]
-    public async Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg)
+    public async Task<RpcResponse> WriteAsync(string requestId, string method, DriverAddressIoArgModel ioArg)
     {
-        var resp = new RpcResponse() { IsSuccess = false };
+        var resp = new RpcResponse
+        {
+            IsSuccess = true,
+            Method = method,
+            RequestId = requestId
+        };
 
         if (!IsConnected) return resp;
-
-        if (ioArg.ValueType != DataTypeEnum.AsciiString) return resp;
-
-        var obj = JsonSerializer
-            .Deserialize<InertialNavigationData>((string)ioArg.Value);
-
-        var bytes = ObjectBytesConverter.ToBytes(obj);
-
-        var checkSum = (byte)bytes.Sum(b => b);
-
-        var result = new byte[bytes.Length + 3];
-
-        var header = BitConverter.GetBytes(obj.Header);
-        (result[0], result[1]) = (header[0], header[1]);
-
-        Array.Copy(bytes, 0, result, 2, bytes.Length);
-        result[bytes.Length + 2] = checkSum;
 
         try
         {
             await using var stream = _serialPort!.BaseStream;
-            await stream.WriteAsync(result);
-            resp.IsSuccess = true;
+
+            var data = ConvertToByte(ioArg.ValueType, ioArg.Value);
+
+            await stream.WriteAsync(data);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Device [{dev}] send failed, {m}", _device, e.Message);
+            resp.IsSuccess = false;
         }
 
         return resp;
     }
+
+    private static byte[] ConvertToByte(DataTypeEnum type, object data)
+        => type switch
+        {
+            DataTypeEnum.AsciiString => Encoding.ASCII.GetBytes((string)data),
+            DataTypeEnum.Utf8String => Encoding.UTF8.GetBytes((string)data),
+            DataTypeEnum.Byte => BitConverter.GetBytes((sbyte)data),
+            DataTypeEnum.UByte => BitConverter.GetBytes((byte)data),
+            DataTypeEnum.Bool => BitConverter.GetBytes((bool)data),
+            DataTypeEnum.Uint16 => BitConverter.GetBytes((ushort)data),
+            DataTypeEnum.Int16 => BitConverter.GetBytes((short)data),
+            DataTypeEnum.Uint32 => BitConverter.GetBytes((uint)data),
+            DataTypeEnum.Int32 => BitConverter.GetBytes((int)data),
+            DataTypeEnum.Uint64 => BitConverter.GetBytes((ulong)data),
+            DataTypeEnum.Int64 => BitConverter.GetBytes((long)data),
+            DataTypeEnum.Float => BitConverter.GetBytes((float)data),
+            DataTypeEnum.Double => BitConverter.GetBytes((double)data),
+            _ => Array.Empty<byte>(),
+        };
 }

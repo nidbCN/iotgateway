@@ -17,8 +17,9 @@ namespace IoTGateway.Model
         public string MqttUName { get; set; }
         [Display(Name = "Password")]
         public string MqttUPwd { get; set; }
+
         [Display(Name = "OutputPlatform")]
-        public IoTPlatformType IoTPlatformType { get; set; }
+        public IoTPlatformType IoTPlatformType { get; set; } = IoTPlatformType.ThingsCloud;
     }
     public enum IoTPlatformType
     {

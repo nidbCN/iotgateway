@@ -1,12 +1,9 @@
-﻿using DevicesSimulator.Models;
-using DevicesSimulator;
+﻿using System.IO.Ports;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using PluginInterface;
-using System.IO.Ports;
-using System.Text;
-using System.Text.Json;
 
-namespace Other.UART;
+namespace Other.SerialPort;
 
 [DriverSupported("UART")]
 [DriverInfo("UART", "V1.0.0", "Copyleft gaein.cn")]
@@ -54,7 +51,7 @@ public class DeviceSerialPort : IDriver
         _device = device;
     }
 
-    private SerialPort? _serialPort;
+    private System.IO.Ports.SerialPort? _serialPort;
 
     public bool IsConnected => _serialPort is { IsOpen: true };
 
@@ -126,7 +123,7 @@ public class DeviceSerialPort : IDriver
 
     private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs args)
     {
-        var sp = (SerialPort)sender;
+        var sp = (System.IO.Ports.SerialPort)sender;
 
         if (_cts.Token.IsCancellationRequested)
             return; // 如果取消请求已经被触发，退出事件处理器

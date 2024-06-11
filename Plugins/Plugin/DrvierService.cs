@@ -7,6 +7,7 @@ using WalkingTec.Mvvm.Core;
 using IoTGateway.DataAccess;
 using IoTGateway.Model;
 using Microsoft.Extensions.Logging;
+using static NPOI.HSSF.UserModel.HeaderFooter;
 
 namespace Plugin
 {
@@ -114,26 +115,20 @@ namespace Plugin
                 if (config is null) continue;
 
                 // 实例化数据库中存储用的模型类
-                var dapConfig = new DeviceConfig
+                var isEnum = property.PropertyType.BaseType == typeof(Enum);
+
+                dc.Set<DeviceConfig>().Add(new()
                 {
                     ID = Guid.NewGuid(),
                     DeviceId = dapId,
                     DeviceConfigName = property.Name,
                     DataSide = DataSide.AnySide,
                     Description = ((ConfigParameterAttribute)config).Description,
-                    Value = property.GetValue(iObj)?.ToString()
-                };
-
-                if (property.PropertyType.BaseType == typeof(Enum))
-                {
-                    var fields = property.PropertyType
-                        .GetFields(BindingFlags.Static | BindingFlags.Public);
-                    var enumInfos = fields
-                        .ToDictionary(f => f.Name, f => (int)(f.GetValue(null) ?? 0));
-                    dapConfig.EnumInfo = JsonSerializer.Serialize(enumInfos);
-                }
-
-                dc.Set<DeviceConfig>().Add(dapConfig);
+                    Value = property.GetValue(iObj)?.ToString(),
+                    EnumInfo = isEnum ? JsonSerializer.Serialize(property.PropertyType
+                        .GetFields(BindingFlags.Static | BindingFlags.Public)
+                        .ToDictionary(f => f.Name, f => (int)(f.GetValue(null) ?? 0))) : string.Empty
+                });
             }
 
             dc.SaveChanges();

@@ -135,13 +135,13 @@ public class DeviceService : IDisposable
 
                         if (propList is not null)
                         {
-                            foreach (var prop in propList)
+                            foreach (var prop in propList
+                                         .Where(p => p.GetCustomAttribute(typeof(ConfigParameterAttribute)) is not null))
                             {
-                                var config = prop.GetCustomAttribute(typeof(ConfigParameterAttribute));
                                 var setting = settingList
                                     .FirstOrDefault(x => x.DeviceConfigName == prop.Name);
 
-                                if (config == null || setting == null)
+                                if (setting == null)
                                     continue;
 
                                 // 通过反射调用解析
@@ -236,11 +236,13 @@ public class DeviceService : IDisposable
     /// <returns></returns>
     public List<ComboSelectListItem> GetDriverMethods(Guid? deviceId)
     {
-        var driverFilesComboSelect = new List<ComboSelectListItem>();
+        List<ComboSelectListItem>? driverFilesComboSelect = null;
+
         try
         {
             _logger.LogInformation("开始获取驱动{deviceId}方法", deviceId);
-            var methodInfos = DeviceThreads
+
+            driverFilesComboSelect = DeviceThreads
                 .FirstOrDefault(x => x.Device.ID == deviceId)
                 ?.Methods
                 ?.Select(m => new ComboSelectListItem()
@@ -250,14 +252,14 @@ public class DeviceService : IDisposable
                 })
                 .ToList();
 
-            _logger.LogInformation("结束获取驱动{deviceId}方法，总计{cnt}", deviceId, methodInfos?.Count);
+            _logger.LogInformation("结束获取驱动{deviceId}方法，总计{cnt}", deviceId, driverFilesComboSelect?.Count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "获取驱动{deviceId}方法错误", deviceId);
         }
 
-        return driverFilesComboSelect;
+        return driverFilesComboSelect ?? new List<ComboSelectListItem>();
     }
 
     public void Dispose()

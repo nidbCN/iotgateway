@@ -110,7 +110,7 @@ public class DeviceCanOpen : IDriver
         return ret;
     }
 
-    public async Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg)
+    public async Task<RpcResponse> WriteAsync(string requestId, string Method, DriverAddressIoArgModel ioArg)
     {
         var resp = new RpcResponse();
         try

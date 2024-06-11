@@ -36,6 +36,7 @@ namespace IoTGateway.Controllers
         public async Task<ActionResult> Login(LoginVM vm)
         {
             var user = await vm.DoLoginAsync();
+
             if (user is null)
             {
                 return View(vm);
@@ -55,7 +56,8 @@ namespace IoTGateway.Controllers
             }
 
             var principal = user.CreatePrincipal();
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, properties);
+            await HttpContext
+                .SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, properties);
             return Redirect(HttpUtility.UrlDecode(url));
         }
 

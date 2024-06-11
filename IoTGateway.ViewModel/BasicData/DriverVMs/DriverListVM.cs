@@ -11,7 +11,7 @@ namespace IoTGateway.ViewModel.BasicData.DriverVMs
     {
         protected override List<GridAction> InitGridAction()
         {
-            return new List<GridAction>
+            return new ()
             {
                 this.MakeStandardAction("Driver", GridActionStandardTypesEnum.Create, Localizer["Sys.Create"],"BasicData", dialogWidth: 800),
                 this.MakeStandardAction("Driver", GridActionStandardTypesEnum.Edit, Localizer["Sys.Edit"], "BasicData", dialogWidth: 800),
@@ -31,7 +31,6 @@ namespace IoTGateway.ViewModel.BasicData.DriverVMs
                 this.MakeGridHeader(x => x.DriverName),
                 this.MakeGridHeader(x => x.FileName),
                 this.MakeGridHeader(x => x.AssembleName),
-                this.MakeGridHeader(x => x.AuthorizesNum),
                 this.MakeGridHeaderAction(width: 200)
             };
         }

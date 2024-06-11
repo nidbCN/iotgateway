@@ -15,7 +15,6 @@ namespace WalkingTec.Mvvm.Core
         /// Id
         /// </summary>
         [Key]
-        [MaxLength(255)]
         public Guid ID
         {
             get; set;

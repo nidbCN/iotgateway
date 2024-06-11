@@ -613,7 +613,7 @@ namespace PLC.LSIS
 
         }
         [Method("XGB", description: "Write")]
-        public async Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg)
+        public async Task<RpcResponse> WriteAsync(string requestId, string Method, DriverAddressIoArgModel ioArg)
         {
             RpcResponse rpcResponse = new() { IsSuccess = false };
             try

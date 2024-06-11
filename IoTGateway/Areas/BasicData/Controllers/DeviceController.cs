@@ -11,7 +11,7 @@ using IoTGateway.ViewModel.BasicData;
 namespace IoTGateway.Controllers
 {
     [Area("BasicData")]
-    [ActionDescription("设备维护")]
+    [ActionDescription("设备配置")]
     public partial class DeviceController : BaseController
     {
         private DeviceService _DeviceService;

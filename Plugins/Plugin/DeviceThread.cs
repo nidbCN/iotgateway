@@ -2,7 +2,6 @@
 using IoTGateway.DataAccess;
 using IoTGateway.Model;
 using Microsoft.Extensions.Logging;
-using MQTTnet;
 using MQTTnet.Server;
 using Newtonsoft.Json;
 using PluginInterface;
@@ -188,14 +187,14 @@ public class DeviceThread : IDisposable
                                 {
                                     //这是设备变量列表要用的
                                     var msgInternal = new InjectedMqttApplicationMessage(
-                                        new ()
+                                        new()
                                         {
                                             Topic = $"internal/v1/gateway/telemetry/{deviceName}/{deviceVar.Name}",
                                             PayloadSegment = Encoding.UTF8.GetBytes(JsonUtility.SerializeToJson(ret))
                                         });
 
                                     await _mqttServer.InjectApplicationMessage(msgInternal);
-                                    
+
                                     //这是在线组态要用的
                                     var msgConfigure = new InjectedMqttApplicationMessage(
                                         new()
@@ -207,10 +206,8 @@ public class DeviceThread : IDisposable
                                     await _mqttServer.InjectApplicationMessage(msgConfigure);
                                 }
 
-                                deviceVar.Value = ret.Value;
-                                deviceVar.CookedValue = ret.CookedValue;
-                                deviceVar.Timestamp = ret.Timestamp;
-                                deviceVar.StatusType = ret.StatusType;
+                                (deviceVar.Value, deviceVar.CookedValue, deviceVar.Timestamp, deviceVar.StatusType)
+                                    = (ret.Value, ret.CookedValue, ret.Timestamp, ret.StatusType);
                             }
 
                             payLoad.TS = (long)(DateTime.UtcNow - _tsStartDt).TotalMilliseconds;
@@ -277,7 +274,7 @@ public class DeviceThread : IDisposable
         if (e.DeviceName != Device.DeviceName &&
             !Device.DeviceVariables.Select(x => x.Alias).Contains(e.DeviceName)) return;
         {
-            var rpcLog = new RpcLog()
+            var rpcLog = new RpcLog
             {
                 DeviceId = Device.ID,
                 StartTime = DateTime.Now,

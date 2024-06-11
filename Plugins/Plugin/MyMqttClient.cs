@@ -8,9 +8,8 @@ using MQTTnet.Formatter;
 using IoTGateway.DataAccess;
 using PluginInterface.IoTSharp;
 using PluginInterface.HuaWeiRoma;
-using PluginInterface.ThingsBoard;
 using Microsoft.Extensions.Logging;
-using RpcRequest = PluginInterface.ThingsBoard.RpcRequest;
+using RpcRequest = PluginInterface.ThingsBoard.TBRpcRequest;
 
 namespace Plugin
 {

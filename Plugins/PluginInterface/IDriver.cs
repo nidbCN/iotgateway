@@ -16,6 +16,6 @@ namespace PluginInterface
         //标准数据读取
         public DriverReturnValueModel Read(DriverAddressIoArgModel ioArg);
         //Rpc写入
-        public Task<RpcResponse> WriteAsync(string RequestId, string Method, DriverAddressIoArgModel ioArg);
+        public Task<RpcResponse> WriteAsync(string requestId, string Method, DriverAddressIoArgModel ioArg);
     }
 }
